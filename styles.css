@@ -138,6 +138,7 @@
         .algorithm-choice-row select:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
         .algorithm-choice-row a { color: var(--muted); font-size: 10px; white-space: nowrap; text-decoration: none; }
         .algorithm-choice-row a:hover { color: var(--lime); }
+        .algorithm-recommendation-note { display: block; margin: -2px 0 8px; color: var(--muted); font-size: 10px; line-height: 1.4; }
         .algorithm-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
         .algorithm-code {
             min-height: 43px;

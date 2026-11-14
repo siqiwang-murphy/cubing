@@ -133,15 +133,67 @@ R U R' U' M' U R U' r'
         if (!Array.isArray(onlineSolutions) || onlineSolutions.length === 0) {
             throw new Error(`No online algorithms were loaded for ${caseId}.`);
         }
-        const solutions = [{ label: "Current", moves: currentAlgorithm }];
-        const seenMoves = new Set([currentAlgorithm.trim().replace(/\s+/g, " ")]);
-        for (const solution of onlineSolutions) {
+        const solutions = [];
+        const seenMoves = new Set();
+        const addSolution = (solution, label = solution.label) => {
             const moves = solution.moves.trim().replace(/\s+/g, " ");
-            if (seenMoves.has(moves)) continue;
+            if (seenMoves.has(moves)) return;
             seenMoves.add(moves);
-            solutions.push({ label: solution.label, moves });
+            const moveCount = moves.split(" ").length;
+            const hasSpeedCubeMetrics = Number.isFinite(solution.stm) && Number.isFinite(solution.etm);
+            solutions.push({
+                label,
+                moves,
+                votes: Number.isFinite(solution.votes) ? solution.votes : 0,
+                etm: hasSpeedCubeMetrics ? solution.etm : null,
+                stm: hasSpeedCubeMetrics ? solution.stm : null,
+                hasSpeedCubeMetrics
+            });
+        };
+        for (const solution of onlineSolutions) {
+            addSolution(solution);
         }
-        return solutions;
+        addSolution({ label: "Current algorithm", moves: currentAlgorithm });
+
+        const rankedSolutions = solutions.filter(solution => solution.hasSpeedCubeMetrics);
+        if (rankedSolutions.length === 0) {
+            throw new Error(`No SpeedCubeDB move metrics were loaded for ${caseId}.`);
+        }
+        const easiest = rankedSolutions.reduce((best, solution) =>
+            solution.stm < best.stm ||
+            (solution.stm === best.stm && solution.etm < best.etm) ||
+            (solution.stm === best.stm && solution.etm === best.etm && solution.moves.length < best.moves.length)
+                ? solution
+                : best
+        );
+        const popularSolutions = rankedSolutions.filter(solution => solution.votes > 0);
+        const mostPopular = popularSolutions.length
+            ? popularSolutions.reduce((best, solution) =>
+                solution.votes > best.votes ||
+                (solution.votes === best.votes && solution.stm < best.stm)
+                    ? solution
+                    : best
+            )
+            : null;
+
+        const orderedSolutions = [easiest];
+        if (mostPopular && mostPopular !== easiest) orderedSolutions.push(mostPopular);
+        for (const solution of solutions) {
+            if (!orderedSolutions.includes(solution)) orderedSolutions.push(solution);
+        }
+
+        return orderedSolutions.map(solution => {
+            const recommendations = [];
+            if (solution === easiest) recommendations.push("Easiest");
+            if (solution === mostPopular) recommendations.push("Most popular");
+            const recommendationLabel = recommendations.length
+                ? `${recommendations.join(" + ")} · `
+                : "";
+            const moveCount = solution.moves.split(" ").length;
+            const stats = [solution.hasSpeedCubeMetrics ? `${solution.stm} STM` : `${moveCount} moves`];
+            if (solution.votes > 0) stats.push(`${solution.votes} votes`);
+            return { ...solution, label: `${recommendationLabel}${solution.label} · ${stats.join(" · ")}` };
+        });
     }
 
     const cases = [
