@@ -267,8 +267,14 @@
         return algorithmLearningStates.find(state => state.id === statusId) || algorithmLearningStates[0];
     }
 
-    function isCaseSolved(caseItem) {
-        return caseItem.solutions.some((_, index) => getAlgorithmLearningState(caseItem, index).id === "known");
+    function getCaseLearningStatus(caseItem) {
+        let isLearning = false;
+        for (let index = 0; index < caseItem.solutions.length; index++) {
+            const statusId = getAlgorithmLearningState(caseItem, index).id;
+            if (statusId === "known") return "known";
+            if (statusId === "learning") isLearning = true;
+        }
+        return isLearning ? "learning" : "not-seen";
     }
 
     function renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex) {
@@ -779,7 +785,8 @@
         }
         visibleCases.forEach(caseItem => {
             const card = document.createElement("button");
-            card.className = `case-card${isCaseSolved(caseItem) ? " is-solved" : ""}`;
+            const learningStatus = getCaseLearningStatus(caseItem);
+            card.className = `case-card${learningStatus === "known" ? " is-solved" : learningStatus === "learning" ? " is-learning" : ""}`;
             card.type = "button";
             card.dataset.caseId = caseItem.id;
             card.setAttribute("aria-pressed", String(selectedCase !== null && selectedCase.id === caseItem.id));
@@ -806,8 +813,8 @@
             algorithm.textContent = `${turnCount} turns`;
             const completion = document.createElement("span");
             completion.className = "case-card-completion";
-            completion.textContent = "Solved · Know one solution";
-            completion.hidden = !isCaseSolved(caseItem);
+            completion.textContent = learningStatus === "known" ? "Solved · Know one solution" : "Learning";
+            completion.hidden = learningStatus === "not-seen";
             card.append(meta, titleRow, pattern, algorithm, completion);
             card.addEventListener("click", () => {
                 loadCase(caseItem);

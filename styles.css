@@ -411,28 +411,33 @@
             gap: 9px;
             border: 1px solid var(--line);
             border-radius: 10px;
-            background: #171a18;
+            background: #712b2b;
             cursor: pointer;
             text-align: left;
             transition: border-color .18s ease, background .18s ease, transform .18s ease;
         }
         .case-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.25); }
-        .case-card[aria-pressed="true"] { border-color: rgba(211,243,107,.7); background: rgba(211,243,107,.055); }
+        .case-card[aria-pressed="true"] { border-color: var(--lime); }
         .case-card.is-solved { border-color: rgba(99,205,130,.55); background: rgba(30,99,60,.32); }
         .case-card.is-solved:hover { border-color: rgba(112,224,145,.8); background: rgba(30,99,60,.45); }
         .case-card.is-solved[aria-pressed="true"] { border-color: rgba(132,232,159,.8); background: rgba(35,115,68,.4); }
+        .case-card.is-learning { border-color: #e0c342; background: #e0c342; color: #201d10; }
+        .case-card.is-learning:hover { border-color: #f3d54b; background: #f3d54b; }
+        .case-card.is-learning[aria-pressed="true"] { border-color: #fff0a0; }
         .case-card-meta { width: 100%; display: flex; justify-content: space-between; color: var(--lime); font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+        .case-card.is-learning .case-card-meta { color: #201d10; }
         .case-card-title-row { width: 100%; display: flex; align-items: center; gap: 11px; }
         .case-card-title { font-size: 17px; font-weight: 650; letter-spacing: -.025em; }
         .case-card-pattern {
             display: -webkit-box;
             overflow: hidden;
-            color: var(--muted);
+            color: #d3d5d0;
             font-size: 11px;
             line-height: 1.45;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 3;
         }
+        .case-card.is-learning .case-card-pattern { color: #332d16; }
         .case-card-alg {
             margin-top: auto;
             color: #dce5c8;
@@ -441,6 +446,7 @@
             line-height: 1.5;
         }
         .case-card-completion { color: var(--lime); font-size: 10px; font-weight: 750; }
+        .case-card.is-learning .case-card-completion, .case-card.is-learning .case-card-alg { color: #201d10; }
         .empty-cases { grid-column: 1 / -1; margin: 0; padding: 28px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); text-align: center; }
         .visually-hidden {
             width: 1px;
