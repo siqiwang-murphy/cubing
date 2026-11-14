@@ -31,7 +31,7 @@
         b: { axis: "z", sign: -1, layers: [-1, 0], label: "Back wide turn" },
         M: { axis: "x", sign: -1, layers: [0], label: "Middle slice (like L)" },
         E: { axis: "y", sign: -1, layers: [0], label: "Equator slice (like D)" },
-        S: { axis: "z", sign: 1, layers: [0], label: "Standing slice (like F)" },
+        S: { axis: "z", sign: 1, layers: [0], label: "Standing slice (like F)", movesCenters: true },
         x: { axis: "x", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like R)" },
         y: { axis: "y", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like U)" },
         z: { axis: "z", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like F)" }
@@ -68,9 +68,11 @@
             if (parsed.invalidTokens.length > 0) {
                 throw new Error(`Unsupported J Perm move notation for ${caseId}: ${parsed.invalidTokens.join(", ")}.`);
             }
-            if (!parsed.moves || seenMoves.has(parsed.moves)) continue;
-            seenMoves.add(parsed.moves);
-            solutions.push({ moves: parsed.moves });
+            if (!parsed.moves) continue;
+            const moves = caseId.startsWith("pll-") ? removeCubeRotations(parsed.moves) : parsed.moves;
+            if (seenMoves.has(moves)) continue;
+            seenMoves.add(moves);
+            solutions.push({ moves });
         }
         if (solutions.length === 0) {
             throw new Error(`No usable J Perm algorithms were found for ${caseId}.`);
@@ -117,6 +119,7 @@
     let activeCategory = "PLL";
     let selectedCase = null;
     let selectedAlgorithmIndex = 0;
+    let activeAlgorithmSequence = "";
     let pendingCase = null;
     let pendingAlgorithmIndex = 0;
     let cubies = [];
@@ -231,20 +234,22 @@
     }
 
     function getCasePreviewState(caseItem, solutionIndex = 0) {
-        const cacheKey = `${caseItem.id}:${solutionIndex}`;
+        return getPreparedCase(caseItem, solutionIndex).state;
+    }
+
+    function getPreparedCase(caseItem, solutionIndex = 0) {
+        const sourceAlgorithm = caseItem.solutions[solutionIndex].moves;
+        const cacheKey = `${caseItem.id}:${solutionIndex}:${sourceAlgorithm}`;
         if (casePreviewStates.has(cacheKey)) return casePreviewStates.get(cacheKey);
         const state = createSolvedCubeState();
-        inverseAlgorithm(caseItem.solutions[solutionIndex].moves).forEach(token => {
+        inverseAlgorithm(sourceAlgorithm).forEach(token => {
             const move = parseMove(token);
             if (!move) return;
-            state.filter(cubie => {
-                const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-                return move.layers.includes(coordinate);
-            }).forEach(cubie => rotateCubie(cubie, move));
+            getAffectedCubies(state, move).forEach(cubie => rotateCubie(cubie, move));
         });
-        if (caseItem.category === "PLL") orientYellowOnTop(state);
-        casePreviewStates.set(cacheKey, state);
-        return state;
+        const prepared = { state, algorithm: sourceAlgorithm };
+        casePreviewStates.set(cacheKey, prepared);
+        return prepared;
     }
 
     function renderCubeViews() {
@@ -258,14 +263,14 @@
             : "Top-down OLL view showing the yellow sticker pattern and side colors");
         document.getElementById("case-view-title").textContent = isPll ? "PLL · top + sides" : "OLL · top + sides";
         document.getElementById("case-view-subtitle").textContent = isPll ? "Piece permutation" : "Yellow pattern";
-        diagram.replaceChildren(createCasePatternGrid(caseItem, isPll ? getYellowTopState(cubies) : cubies));
+        diagram.replaceChildren(createCasePatternGrid(caseItem, cubies));
         if (isPll) diagram.appendChild(createPermutationArrowOverlay());
     }
 
     function renderCaseTitlePreview(caseItem, state) {
         const preview = document.getElementById("case-title-preview");
         preview.className = `case-title-preview ${caseItem.category.toLowerCase()}`;
-        preview.replaceChildren(createCasePatternGrid(caseItem, caseItem.category === "PLL" ? getYellowTopState(state) : state));
+        preview.replaceChildren(createCasePatternGrid(caseItem, state));
     }
 
     function createPermutationArrowOverlay() {
@@ -329,21 +334,6 @@
         cubie.stickers = rotatedStickers;
     }
 
-    function orientYellowOnTop(state) {
-        const yellowFace = getYellowCenterFace(state);
-        const rotations = {
-            U: null,
-            D: { axis: "x", quarterTurns: 2 },
-            R: { axis: "z", quarterTurns: 1 },
-            L: { axis: "z", quarterTurns: 3 },
-            F: { axis: "x", quarterTurns: 3 },
-            B: { axis: "x", quarterTurns: 1 }
-        };
-        const rotation = rotations[yellowFace];
-        if (!rotation) return;
-        state.forEach(cubie => rotateCubie(cubie, rotation));
-    }
-
     function getYellowCenterFace(state) {
         const yellowCenter = state.find(cubie =>
             Object.keys(cubie.stickers).length === 1 &&
@@ -370,26 +360,20 @@
         return alignments[getYellowCenterFace(state)];
     }
 
-    function getYellowTopState(state) {
-        const displayState = state.map(({ id, x, y, z, stickers }) => ({
+    function getCasePermutationArrows(algorithm) {
+        const finalPositions = cubies.map(({ id, x, y, z, stickers }) => ({
             id,
             x,
             y,
             z,
-            stickers: { ...stickers }
+            isFixed: Object.keys(stickers).length <= 1
         }));
-        orientYellowOnTop(displayState);
-        return displayState;
-    }
-
-    function getCasePermutationArrows(algorithm) {
-        const finalPositions = cubies.map(({ id, x, y, z }) => ({ id, x, y, z }));
         algorithm.trim().split(/\s+/).forEach(token => {
             const move = parseMove(token);
             if (!move) return;
             finalPositions.filter(cubie => {
                 const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-                return move.layers.includes(coordinate);
+                return move.layers.includes(coordinate) && (move.layers.length === 3 || !cubie.isFixed);
             }).forEach(cubie => {
                 [cubie.x, cubie.y, cubie.z] = rotateVector([cubie.x, cubie.y, cubie.z], move.axis, move.quarterTurns);
             });
@@ -404,10 +388,7 @@
     function applyMoveToState(token) {
         const move = parseMove(token);
         if (!move) return;
-        const selected = cubies.filter(cubie => {
-            const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            return move.layers.includes(coordinate);
-        });
+        const selected = getAffectedCubies(cubies, move);
         selected.forEach(cubie => rotateCubie(cubie, move));
         cubies.forEach(drawCubie);
     }
@@ -430,6 +411,83 @@
         };
     }
 
+    function getAffectedCubies(state, move) {
+        const wholeCubeRotation = move.layers.length === 3;
+        return state.filter(cubie => {
+            const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
+            // Centers stay fixed except when an S turn carries its middle-layer centers.
+            return move.layers.includes(coordinate) &&
+                (wholeCubeRotation || move.movesCenters || Object.keys(cubie.stickers).length > 1);
+        });
+    }
+
+    function mapLocalVectorToWorld(frame, vector) {
+        return [0, 1, 2].map(index =>
+            frame.x[index] * vector[0] +
+            frame.y[index] * vector[1] +
+            frame.z[index] * vector[2]
+        );
+    }
+
+    function removeCubeRotations(sequence) {
+        const frame = {
+            x: [1, 0, 0],
+            y: [0, 1, 0],
+            z: [0, 0, 1]
+        };
+        const mappedMoves = [];
+        for (const token of sequence.trim().split(/\s+/)) {
+            const move = parseMove(token);
+            if (!move) throw new Error(`Cannot map unsupported PLL move ${token}.`);
+            if (["x", "y", "z"].includes(token[0])) {
+                const oldFrame = {
+                    x: [...frame.x],
+                    y: [...frame.y],
+                    z: [...frame.z]
+                };
+                const localBasis = {
+                    x: [1, 0, 0],
+                    y: [0, 1, 0],
+                    z: [0, 0, 1]
+                };
+                for (const axis of ["x", "y", "z"]) {
+                    frame[axis] = mapLocalVectorToWorld(
+                        oldFrame,
+                        rotateVector(localBasis[axis], move.axis, -move.quarterTurns)
+                    );
+                }
+                continue;
+            }
+
+            const axisVector = frame[move.axis];
+            const axisIndex = axisVector.findIndex(value => Math.abs(value) === 1);
+            if (axisIndex < 0) throw new Error(`Cannot determine the PLL move axis for ${token}.`);
+            const worldAxis = ["x", "y", "z"][axisIndex];
+            const axisDirection = axisVector[axisIndex];
+            const worldLayers = move.layers.map(layer => layer * axisDirection).sort((left, right) => left - right);
+            const worldQuarterTurns = ((move.quarterTurns * axisDirection) % 4 + 4) % 4;
+            let mappedToken = null;
+            for (const candidateBase of Object.keys(moveDefinitions)) {
+                if (["x", "y", "z"].includes(candidateBase)) continue;
+                for (const suffix of ["", "2", "'"]) {
+                    const candidateToken = `${candidateBase}${suffix}`;
+                    const candidate = parseMove(candidateToken);
+                    const candidateLayers = candidate.layers.slice().sort((left, right) => left - right);
+                    if (candidate.axis === worldAxis &&
+                        candidateLayers.join(",") === worldLayers.join(",") &&
+                        ((candidate.quarterTurns % 4) + 4) % 4 === worldQuarterTurns) {
+                        mappedToken = candidateToken;
+                        break;
+                    }
+                }
+                if (mappedToken) break;
+            }
+            if (!mappedToken) throw new Error(`Cannot map PLL move ${token} into the yellow-top orientation.`);
+            mappedMoves.push(mappedToken);
+        }
+        return mappedMoves.join(" ");
+    }
+
     function renderAlgorithm(sequence) {
         const container = document.getElementById("algorithm-code");
         container.replaceChildren();
@@ -447,10 +505,9 @@
         }
     }
 
-    function renderCase(caseItem, solutionIndex) {
+    function renderCase(caseItem, solutionIndex, displayAlgorithm) {
         const categoryCases = cases.filter(item => item.category === caseItem.category);
         const caseNumber = categoryCases.findIndex(item => item.id === caseItem.id) + 1;
-        const selectedSolution = caseItem.solutions[solutionIndex];
         document.getElementById("case-category").textContent = caseItem.category;
         document.getElementById("case-index").textContent = `CASE ${String(caseNumber).padStart(2, "0")} / ${String(categoryCases.length).padStart(2, "0")}`;
         document.getElementById("progress-fill").style.width = `${(caseNumber / categoryCases.length) * 100}%`;
@@ -461,16 +518,17 @@
         document.getElementById("case-recognition").textContent = caseItem.recognition;
         const algorithmChoice = document.getElementById("algorithm-choice");
         algorithmChoice.replaceChildren();
-        caseItem.solutions.forEach((solution, index) => {
+        caseItem.solutions.forEach((_, index) => {
             const option = document.createElement("option");
             option.value = String(index);
-            option.textContent = solution.moves.replace(/'/g, "′");
+            const turnCount = getPreparedCase(caseItem, index).algorithm.trim().split(/\s+/).length;
+            option.textContent = `${turnCount} turns${caseItem.solutions.length > 1 ? ` · option ${index + 1}` : ""}`;
             algorithmChoice.appendChild(option);
         });
         algorithmChoice.value = String(solutionIndex);
         document.getElementById("algorithm-source").href = caseItem.sourceUrl;
         document.getElementById("algorithm-label").textContent = "Tap a turn to animate it on the cube";
-        renderAlgorithm(selectedSolution.moves);
+        renderAlgorithm(displayAlgorithm);
         const customSolution = caseItem.solutions.find(solution => solution.isCustom);
         const customInput = document.getElementById("custom-algorithm-input");
         customInput.value = customSolution ? customSolution.moves : "";
@@ -503,13 +561,14 @@
             return;
         }
 
+        const moves = selectedCase.category === "PLL" ? removeCubeRotations(parsed.moves) : parsed.moves;
         input.removeAttribute("aria-invalid");
         let solutionIndex = selectedCase.solutions.findIndex(solution => solution.isCustom);
         if (solutionIndex < 0) {
-            selectedCase.solutions.push({ moves: parsed.moves, isCustom: true });
+            selectedCase.solutions.push({ moves, isCustom: true });
             solutionIndex = selectedCase.solutions.length - 1;
         } else {
-            selectedCase.solutions[solutionIndex].moves = parsed.moves;
+            selectedCase.solutions[solutionIndex].moves = moves;
         }
         loadCase(selectedCase, solutionIndex);
         status.textContent = "Custom algorithm added to this case's solutions.";
@@ -545,17 +604,16 @@
         makeCube();
         const algorithm = caseItem.solutions[solutionIndex].moves;
         inverseAlgorithm(algorithm).forEach(applyMoveToState);
+        activeAlgorithmSequence = algorithm;
         isPlayingAlgorithm = false;
         viewRotation.x = defaultViewRotation.x;
         viewRotation.y = defaultViewRotation.y;
         viewRotation.z = 0;
-        viewAlignment = caseItem.category === "PLL"
-            ? getYellowTopViewAlignment(cubies)
-            : { x: 0, y: 0, z: 0 };
+        viewAlignment = { x: 0, y: 0, z: 0 };
         updateCubeView();
-        casePermutationArrows = caseItem.category === "PLL" ? getCasePermutationArrows(algorithm) : [];
+        casePermutationArrows = caseItem.category === "PLL" ? getCasePermutationArrows(activeAlgorithmSequence) : [];
         renderCubeViews();
-        renderCase(caseItem, solutionIndex);
+        renderCase(caseItem, solutionIndex, activeAlgorithmSequence);
         cubeStatus.textContent = `${caseItem.name} case loaded`;
     }
 
@@ -573,10 +631,7 @@
         busy = true;
         const token = moveQueue.shift();
         const move = parseMove(token);
-        const selected = cubies.filter(cubie => {
-            const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            return move.layers.includes(coordinate);
-        });
+        const selected = getAffectedCubies(cubies, move);
         const layer = document.createElement("div");
         layer.className = "turn-layer";
         cubeRoot.appendChild(layer);
@@ -676,7 +731,8 @@
             pattern.textContent = caseItem.recognition;
             const algorithm = document.createElement("code");
             algorithm.className = "case-card-alg";
-            algorithm.textContent = caseItem.solutions[0].moves.replace(/'/g, "′");
+            const turnCount = getPreparedCase(caseItem).algorithm.trim().split(/\s+/).length;
+            algorithm.textContent = `${turnCount} turns`;
             card.append(meta, titleRow, pattern, algorithm);
             card.addEventListener("click", () => loadCase(caseItem));
             caseGrid.appendChild(card);
@@ -768,7 +824,7 @@
     document.getElementById("play-algorithm").addEventListener("click", () => {
         if (selectedCase && !pendingCase) {
             isPlayingAlgorithm = true;
-            enqueue(selectedCase.solutions[selectedAlgorithmIndex].moves);
+            enqueue(activeAlgorithmSequence);
         }
     });
     document.getElementById("reset-cube").addEventListener("click", () => {
