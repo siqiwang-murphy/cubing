@@ -121,9 +121,9 @@
         h2 { margin: 0; font-size: clamp(25px, 3vw, 34px); font-weight: 620; letter-spacing: -.045em; line-height: 1.12; }
         .case-title-row { display: flex; align-items: center; gap: 12px; }
         .case-title-row h2 { min-width: 0; flex: 1; }
-        .case-title-preview, .case-card-preview { width: 52px; height: 52px; flex: 0 0 52px; }
-        .case-title-preview .case-pattern-grid, .case-card-preview .case-pattern-grid { gap: 1px; border-width: 1px; border-radius: 4px; }
-        .case-title-preview .case-pattern-sticker, .case-card-preview .case-pattern-sticker { border: 0; border-radius: 1px; box-shadow: none; }
+        .case-title-preview, .case-card-preview { width: 52px; height: 52px; flex: 0 0 52px; display: grid; place-items: center; border: 1px solid #080a08; background: #171a18; }
+        .case-title-preview .case-pattern-grid, .case-card-preview .case-pattern-grid { gap: 1px; border-width: 1px; }
+        .case-title-preview .case-pattern-sticker, .case-card-preview .case-pattern-sticker { border-width: 1px; }
         .lesson-description { margin: 13px 0 22px; color: #b7bab3; font-size: 14px; }
         .lesson-tip {
             padding: 14px 15px;
@@ -324,23 +324,23 @@
         .view-label { margin-bottom: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
         .view-label strong { color: var(--ink); font-size: 10px; font-weight: 650; }
         .view-label span { color: var(--muted); font-size: 9px; }
-        .case-pattern-diagram { position: relative; }
+        .case-pattern-diagram { position: relative; display: grid; place-items: center; aspect-ratio: 8 / 7; border: 1px solid #080a08; background: #171a18; }
         .case-pattern-diagram.oll, .case-pattern-diagram.pll { width: 220px; }
         .case-pattern-grid {
-            width: 100%;
+            width: 70%;
+            margin: auto;
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: .55fr repeat(3, minmax(0, 1fr)) .55fr;
+            grid-template-rows: .55fr repeat(3, minmax(0, 1fr)) .55fr;
             aspect-ratio: 1;
-            gap: 3px;
-            border: 3px solid #101311;
-            border-radius: 6px;
-            background: #101311;
+            gap: 2px;
+            border: 2px solid #080a08;
+            background: #080a08;
             overflow: hidden;
         }
-        .case-pattern-sticker { min-width: 0; border: 1px solid rgba(0,0,0,.4); border-radius: 3px; box-shadow: inset 0 1px 2px rgba(255,255,255,.18); }
-        .case-pattern-sticker.side-sticker { border-radius: 1px; }
+        .case-pattern-sticker { min-width: 0; border: 1px solid #080a08; border-radius: 0; box-shadow: none; }
         .case-pattern-blank { background: #171a18; }
-        .pll-arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+        .pll-arrows { position: absolute; top: 50%; left: 50%; width: 70%; aspect-ratio: 1; transform: translate(-50%, -50%); overflow: visible; pointer-events: none; }
         .pll-arrow-path { fill: none; stroke: #171a18; stroke-width: .045; stroke-linecap: round; filter: drop-shadow(0 0 1px rgba(255,255,255,.9)); }
         .move-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .toolbar-label { width: 100%; margin-bottom: 3px; color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
