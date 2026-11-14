@@ -138,6 +138,24 @@
         .algorithm-choice-row select:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
         .algorithm-choice-row a { color: var(--muted); font-size: 10px; white-space: nowrap; text-decoration: none; }
         .algorithm-choice-row a:hover { color: var(--lime); }
+        .algorithm-status-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 7px; }
+        .algorithm-status-button {
+            padding: 5px 8px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+            transition: filter .15s ease;
+        }
+        .algorithm-status-button:hover { filter: brightness(1.1); }
+        .algorithm-status-button[aria-current="true"] { border-color: var(--ink); }
+        .algorithm-status-button.not-seen { background: #b83e3e; color: #fff; }
+        .algorithm-status-button.learning { background: #f3d54b; color: #201d10; }
+        .algorithm-status-button.known { background: #27854d; color: #fff; }
+        .algorithm-status-message { display: block; margin: -2px 0 6px; color: #f08a82; font-size: 10px; line-height: 1.4; }
         .algorithm-recommendation-note { display: block; margin: -2px 0 8px; color: var(--muted); font-size: 10px; line-height: 1.4; }
         .custom-algorithm { margin-top: 12px; }
         .custom-algorithm-label { display: block; margin-bottom: 6px; color: var(--ink); font-size: 11px; font-weight: 650; }

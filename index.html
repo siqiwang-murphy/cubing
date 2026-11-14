@@ -52,7 +52,9 @@
                             <select id="algorithm-choice" aria-label="Choose a solution by turn count"></select>
                             <a id="algorithm-source" href="https://jperm.net/algs/pll" target="_blank" rel="noopener noreferrer">J Perm ↗</a>
                         </div>
-                        <span class="algorithm-recommendation-note">Choose a turn count to view that option's moves. The first is selected by default.</span>
+                        <div class="algorithm-status-list" id="algorithm-status-list" role="group" aria-label="Learning status for each algorithm option"></div>
+                        <span class="algorithm-status-message" id="algorithm-status-message" role="status" aria-live="polite"></span>
+                        <span class="algorithm-recommendation-note">Choose a turn count to view its moves. Status buttons track each option separately.</span>
                         <span class="algorithm-label" id="algorithm-label">Tap a move to animate it on the cube</span>
                         <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Case solution algorithm"></div>
                         <div class="custom-algorithm">

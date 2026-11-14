@@ -125,6 +125,27 @@
     let cubies = [];
     let casePermutationArrows = [];
     const casePreviewStates = new Map();
+    const algorithmLearningStorageKey = "cube-club.algorithm-learning-status.v1";
+    const algorithmLearningStates = [
+        { id: "not-seen", label: "Not seen / not learning", className: "not-seen" },
+        { id: "learning", label: "Learning", className: "learning" },
+        { id: "known", label: "Know it", className: "known" }
+    ];
+    let algorithmLearningStatuses = {};
+    let algorithmLearningStorageMessage = "";
+    try {
+        const savedStatuses = window.localStorage.getItem(algorithmLearningStorageKey);
+        if (savedStatuses) {
+            const parsedStatuses = JSON.parse(savedStatuses);
+            if (!parsedStatuses || typeof parsedStatuses !== "object" || Array.isArray(parsedStatuses)) {
+                throw new Error("Saved algorithm statuses are not a valid object.");
+            }
+            algorithmLearningStatuses = parsedStatuses;
+        }
+    } catch (error) {
+        console.error("Could not load saved algorithm learning statuses.", error);
+        algorithmLearningStorageMessage = "Saved statuses could not be loaded; changes may not persist.";
+    }
     const defaultViewRotation = { x: -24, y: -34 };
     const viewRotation = { ...defaultViewRotation };
     let viewAlignment = { x: 0, y: 0, z: 0 };
@@ -235,6 +256,50 @@
 
     function getCasePreviewState(caseItem, solutionIndex = 0) {
         return getPreparedCase(caseItem, solutionIndex).state;
+    }
+
+    function getAlgorithmLearningKey(caseItem, solutionIndex) {
+        return `${caseItem.id}:${solutionIndex}:${caseItem.solutions[solutionIndex].moves}`;
+    }
+
+    function getAlgorithmLearningState(caseItem, solutionIndex) {
+        const statusId = algorithmLearningStatuses[getAlgorithmLearningKey(caseItem, solutionIndex)];
+        return algorithmLearningStates.find(state => state.id === statusId) || algorithmLearningStates[0];
+    }
+
+    function renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex) {
+        const container = document.getElementById("algorithm-status-list");
+        container.replaceChildren();
+        caseItem.solutions.forEach((solution, index) => {
+            const learningState = getAlgorithmLearningState(caseItem, index);
+            const turnCount = solution.moves.trim().split(/\s+/).length;
+            const optionLabel = caseItem.solutions.length > 1
+                ? `Option ${index + 1} · ${turnCount} turns`
+                : `${turnCount} turns`;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `algorithm-status-button ${learningState.className}`;
+            button.textContent = `${learningState.label} · ${optionLabel}`;
+            button.setAttribute("aria-label", `${optionLabel}. Status: ${learningState.label}. Click to change status.`);
+            button.setAttribute("aria-current", String(index === selectedSolutionIndex));
+            button.dataset.solutionIndex = String(index);
+            button.addEventListener("click", () => {
+                const currentIndex = algorithmLearningStates.findIndex(state => state.id === learningState.id);
+                const nextState = algorithmLearningStates[(currentIndex + 1) % algorithmLearningStates.length];
+                algorithmLearningStatuses[getAlgorithmLearningKey(caseItem, index)] = nextState.id;
+                try {
+                    window.localStorage.setItem(algorithmLearningStorageKey, JSON.stringify(algorithmLearningStatuses));
+                    algorithmLearningStorageMessage = "";
+                } catch (error) {
+                    console.error("Could not save algorithm learning status.", error);
+                    algorithmLearningStorageMessage = "Could not save this status in the browser.";
+                }
+                renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex);
+                container.querySelector(`[data-solution-index="${index}"]`).focus();
+            });
+            container.appendChild(button);
+        });
+        document.getElementById("algorithm-status-message").textContent = algorithmLearningStorageMessage;
     }
 
     function getPreparedCase(caseItem, solutionIndex = 0) {
@@ -526,6 +591,7 @@
             algorithmChoice.appendChild(option);
         });
         algorithmChoice.value = String(solutionIndex);
+        renderAlgorithmLearningStatuses(caseItem, solutionIndex);
         document.getElementById("algorithm-source").href = caseItem.sourceUrl;
         document.getElementById("algorithm-label").textContent = "Tap a turn to animate it on the cube";
         renderAlgorithm(displayAlgorithm);
