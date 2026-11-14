@@ -23,12 +23,12 @@
         L: { axis: "x", sign: -1, layers: [-1], face: "L", label: "Left face" },
         F: { axis: "z", sign: 1, layers: [1], face: "F", label: "Front face" },
         B: { axis: "z", sign: -1, layers: [-1], face: "B", label: "Back face" },
-        u: { axis: "y", sign: 1, layers: [0, 1], label: "Up wide turn" },
-        d: { axis: "y", sign: -1, layers: [-1, 0], label: "Down wide turn" },
-        r: { axis: "x", sign: 1, layers: [0, 1], label: "Right wide turn" },
-        l: { axis: "x", sign: -1, layers: [-1, 0], label: "Left wide turn" },
-        f: { axis: "z", sign: 1, layers: [0, 1], label: "Front wide turn" },
-        b: { axis: "z", sign: -1, layers: [-1, 0], label: "Back wide turn" },
+        u: { axis: "y", sign: 1, layers: [0, 1], label: "Up wide turn", movesCenters: true },
+        d: { axis: "y", sign: -1, layers: [-1, 0], label: "Down wide turn", movesCenters: true },
+        r: { axis: "x", sign: 1, layers: [0, 1], label: "Right wide turn", movesCenters: true },
+        l: { axis: "x", sign: -1, layers: [-1, 0], label: "Left wide turn", movesCenters: true },
+        f: { axis: "z", sign: 1, layers: [0, 1], label: "Front wide turn", movesCenters: true },
+        b: { axis: "z", sign: -1, layers: [-1, 0], label: "Back wide turn", movesCenters: true },
         M: { axis: "x", sign: -1, layers: [0], label: "Middle slice (like L)" },
         E: { axis: "y", sign: -1, layers: [0], label: "Equator slice (like D)" },
         S: { axis: "z", sign: 1, layers: [0], label: "Standing slice (like F)", movesCenters: true },
@@ -267,38 +267,42 @@
         return algorithmLearningStates.find(state => state.id === statusId) || algorithmLearningStates[0];
     }
 
+    function isCaseSolved(caseItem) {
+        return caseItem.solutions.some((_, index) => getAlgorithmLearningState(caseItem, index).id === "known");
+    }
+
     function renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex) {
         const container = document.getElementById("algorithm-status-list");
         container.replaceChildren();
-        caseItem.solutions.forEach((solution, index) => {
-            const learningState = getAlgorithmLearningState(caseItem, index);
-            const turnCount = solution.moves.trim().split(/\s+/).length;
-            const optionLabel = caseItem.solutions.length > 1
-                ? `Option ${index + 1} · ${turnCount} turns`
-                : `${turnCount} turns`;
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = `algorithm-status-button ${learningState.className}`;
-            button.textContent = `${learningState.label} · ${optionLabel}`;
-            button.setAttribute("aria-label", `${optionLabel}. Status: ${learningState.label}. Click to change status.`);
-            button.setAttribute("aria-current", String(index === selectedSolutionIndex));
-            button.dataset.solutionIndex = String(index);
-            button.addEventListener("click", () => {
-                const currentIndex = algorithmLearningStates.findIndex(state => state.id === learningState.id);
-                const nextState = algorithmLearningStates[(currentIndex + 1) % algorithmLearningStates.length];
-                algorithmLearningStatuses[getAlgorithmLearningKey(caseItem, index)] = nextState.id;
-                try {
-                    window.localStorage.setItem(algorithmLearningStorageKey, JSON.stringify(algorithmLearningStatuses));
-                    algorithmLearningStorageMessage = "";
-                } catch (error) {
-                    console.error("Could not save algorithm learning status.", error);
-                    algorithmLearningStorageMessage = "Could not save this status in the browser.";
-                }
-                renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex);
-                container.querySelector(`[data-solution-index="${index}"]`).focus();
-            });
-            container.appendChild(button);
+        const solution = caseItem.solutions[selectedSolutionIndex];
+        const learningState = getAlgorithmLearningState(caseItem, selectedSolutionIndex);
+        const turnCount = solution.moves.trim().split(/\s+/).length;
+        const optionLabel = caseItem.solutions.length > 1
+            ? `Option ${selectedSolutionIndex + 1} · ${turnCount} turns`
+            : `${turnCount} turns`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `algorithm-status-button ${learningState.className}`;
+        button.textContent = `${learningState.label} · ${optionLabel}`;
+        button.setAttribute("aria-label", `${optionLabel}. Status: ${learningState.label}. Click to change status.`);
+        button.setAttribute("aria-current", "true");
+        button.dataset.solutionIndex = String(selectedSolutionIndex);
+        button.addEventListener("click", () => {
+            const currentIndex = algorithmLearningStates.findIndex(state => state.id === learningState.id);
+            const nextState = algorithmLearningStates[(currentIndex + 1) % algorithmLearningStates.length];
+            algorithmLearningStatuses[getAlgorithmLearningKey(caseItem, selectedSolutionIndex)] = nextState.id;
+            try {
+                window.localStorage.setItem(algorithmLearningStorageKey, JSON.stringify(algorithmLearningStatuses));
+                algorithmLearningStorageMessage = "";
+            } catch (error) {
+                console.error("Could not save algorithm learning status.", error);
+                algorithmLearningStorageMessage = "Could not save this status in the browser.";
+            }
+            renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex);
+            renderCaseGrid();
+            container.querySelector(`[data-solution-index="${selectedSolutionIndex}"]`).focus();
         });
+        container.appendChild(button);
         document.getElementById("algorithm-status-message").textContent = algorithmLearningStorageMessage;
     }
 
@@ -480,7 +484,7 @@
         const wholeCubeRotation = move.layers.length === 3;
         return state.filter(cubie => {
             const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            // Centers stay fixed except when an S turn carries its middle-layer centers.
+            // Centers stay fixed except for wide, S-slice, and whole-cube turns.
             return move.layers.includes(coordinate) &&
                 (wholeCubeRotation || move.movesCenters || Object.keys(cubie.stickers).length > 1);
         });
@@ -799,7 +803,11 @@
             algorithm.className = "case-card-alg";
             const turnCount = getPreparedCase(caseItem).algorithm.trim().split(/\s+/).length;
             algorithm.textContent = `${turnCount} turns`;
-            card.append(meta, titleRow, pattern, algorithm);
+            const completion = document.createElement("span");
+            completion.className = "case-card-completion";
+            completion.textContent = "Solved · Know one solution";
+            completion.hidden = !isCaseSolved(caseItem);
+            card.append(meta, titleRow, pattern, algorithm, completion);
             card.addEventListener("click", () => loadCase(caseItem));
             caseGrid.appendChild(card);
         });
