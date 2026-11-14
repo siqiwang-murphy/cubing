@@ -29,14 +29,29 @@
 
         <section class="workspace" aria-label="Algorithm case and 3D cube">
             <div class="lesson-panel case-detail">
-                <div class="step-meta"><span id="case-category">PLL</span><strong id="case-index">CASE 01</strong></div>
+                <div class="step-meta">
+                    <span id="case-category">PLL</span>
+                    <div class="case-navigation" aria-label="Choose a case">
+                        <button class="case-navigation-button" id="previous-case" type="button" aria-label="Previous case" title="Previous case">←</button>
+                        <strong id="case-index">CASE 01</strong>
+                        <button class="case-navigation-button" id="next-case" type="button" aria-label="Next case" title="Next case">→</button>
+                    </div>
+                </div>
                 <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
                 <div class="lesson-content" aria-live="polite">
                     <p class="lesson-kicker" id="case-kicker">Permutation · corners and edges</p>
-                    <h2 id="case-title">T Perm</h2>
+                    <div class="case-title-row">
+                        <h2 id="case-title">T Perm</h2>
+                        <div class="case-title-preview" id="case-title-preview" aria-hidden="true"></div>
+                    </div>
                     <p class="lesson-description" id="case-description"></p>
                     <div class="lesson-tip"><strong>Recognize the case</strong><span id="case-recognition"></span></div>
                     <div class="algorithm">
+                        <div class="algorithm-choice-row">
+                            <label for="algorithm-choice">Solution</label>
+                            <select id="algorithm-choice" aria-label="Choose an algorithm solution"></select>
+                            <a id="algorithm-source" href="https://speedcubedb.com/a/3x3" target="_blank" rel="noopener noreferrer">SpeedCubeDB ↗</a>
+                        </div>
                         <span class="algorithm-label" id="algorithm-label">Tap a move to animate it on the cube</span>
                         <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Case solution algorithm"></div>
                     </div>
@@ -115,6 +130,7 @@
     </main>
     <footer>Made for curious minds &amp; mixed-up cubes.</footer>
 
+    <script src="algorithm-variants.js" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>
