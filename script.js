@@ -29,8 +29,8 @@
         l: { axis: "x", sign: -1, layers: [-1, 0], label: "Left wide turn", movesCenters: true },
         f: { axis: "z", sign: 1, layers: [0, 1], label: "Front wide turn", movesCenters: true },
         b: { axis: "z", sign: -1, layers: [-1, 0], label: "Back wide turn", movesCenters: true },
-        M: { axis: "x", sign: -1, layers: [0], label: "Middle slice (like L)" },
-        E: { axis: "y", sign: -1, layers: [0], label: "Equator slice (like D)" },
+        M: { axis: "x", sign: -1, layers: [0], label: "Middle slice (like L)", movesCenters: true },
+        E: { axis: "y", sign: -1, layers: [0], label: "Equator slice (like D)", movesCenters: true },
         S: { axis: "z", sign: 1, layers: [0], label: "Standing slice (like F)", movesCenters: true },
         x: { axis: "x", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like R)" },
         y: { axis: "y", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like U)" },
@@ -484,7 +484,7 @@
         const wholeCubeRotation = move.layers.length === 3;
         return state.filter(cubie => {
             const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            // Centers stay fixed except for wide, S-slice, and whole-cube turns.
+            // Slice, wide, and whole-cube turns carry centers with their layers.
             return move.layers.includes(coordinate) &&
                 (wholeCubeRotation || move.movesCenters || Object.keys(cubie.stickers).length > 1);
         });
