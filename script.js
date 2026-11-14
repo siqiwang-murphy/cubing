@@ -20,31 +20,129 @@
         F: { name: "Front", position: "Facing you" },
         B: { name: "Back", position: "Facing away" }
     };
+    const moveDefinitions = {
+        U: { axis: "y", sign: 1, layers: [1], face: "U", label: "Up face" },
+        D: { axis: "y", sign: -1, layers: [-1], face: "D", label: "Down face" },
+        R: { axis: "x", sign: 1, layers: [1], face: "R", label: "Right face" },
+        L: { axis: "x", sign: -1, layers: [-1], face: "L", label: "Left face" },
+        F: { axis: "z", sign: 1, layers: [1], face: "F", label: "Front face" },
+        B: { axis: "z", sign: -1, layers: [-1], face: "B", label: "Back face" },
+        u: { axis: "y", sign: 1, layers: [0, 1], label: "Up wide turn" },
+        d: { axis: "y", sign: -1, layers: [-1, 0], label: "Down wide turn" },
+        r: { axis: "x", sign: 1, layers: [0, 1], label: "Right wide turn" },
+        l: { axis: "x", sign: -1, layers: [-1, 0], label: "Left wide turn" },
+        f: { axis: "z", sign: 1, layers: [0, 1], label: "Front wide turn" },
+        b: { axis: "z", sign: -1, layers: [-1, 0], label: "Back wide turn" },
+        M: { axis: "x", sign: -1, layers: [0], label: "Middle slice (like L)" },
+        E: { axis: "y", sign: -1, layers: [0], label: "Equator slice (like D)" },
+        S: { axis: "z", sign: 1, layers: [0], label: "Standing slice (like F)" },
+        x: { axis: "x", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like R)" },
+        y: { axis: "y", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like U)" },
+        z: { axis: "z", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like F)" }
+    };
+    const ollAlgorithms = `
+R U2 R' R' F R F' U2 R' F R F'
+F R U R' U' F' f R U R' U' f'
+y' f R U R' U' f' U' F R U R' U' F'
+y' f R U R' U' f' U F R U R' U' F'
+r' U2 R U R' U r
+r U2 R' U' R U' r'
+r U R' U R U2 r'
+y2 r' U' R U' R' U2 r
+y R U R' U' R' F R U R U' R' F'
+R U R' U R' F R F' R U2 R'
+M R U R' U R U2 R' U M'
+y' M' R' U' R U' R' U2 R U' M
+r U' r' U' r U r' F' U F
+R' F R U R' F' R F U' F'
+r' U' r R' U' R U r' U r
+r U r' R U R' U' r U' r'
+R U R' U R' F R F' U2 R' F R F'
+y R U2 R2 F R F' U2 M' U R U' r'
+M U R U R' U' M' R' F R F'
+r U R' U' M2 U R U' R' U' M'
+R U R' U R U' R' U R U2 R'
+R U2 R2 U' R2 U' R2 U2 R
+R2 D R' U2 R D' R' U2 R'
+r U R' U' r' F R F'
+y F' r U R' U' r' F R
+y R U2 R' U' R U' R'
+R U R' U R U2 R'
+r U R' U' M U R U' R'
+r2 D' r U r' D r2 U' r' U' r
+y2 F U R U2 R' U' R U2 R' U' F'
+R' U' F U R U' R' F' R
+S R U R' U' R' F R f'
+R U R' U' R' F R F'
+y2 R U R2 U' R' F R U R U' F'
+R U2 R2 F R F' R U2 R'
+y2 L' U' L U' L' U L U L F' L' F
+F R U' R' U' R U R' F'
+R U R' U R U' R' U' R' F R F'
+y L F' L' U' L U F U' L'
+y R' F R U R' U' F' U R
+y2 R U R' U R U2 R' F R U R' U' F'
+R' U' R U' R' U2 R F R U R' U' F'
+y R' U' F' U F R
+f R U R' U' f'
+F R U R' U' F'
+R' U' R' F R F' U R
+F' L' U' L U L' U' L U F
+F R U R' U' R U R' U' F'
+y2 r U' r2 U r2 U r2 U' r
+r' U r2 U' r2 U' r2 U r'
+f R U R' U' R U R' U' f'
+y2 R' F' U' F U' R U R' U R
+r' U' R U' R' U R U' R' U2 r
+r U R' U R U' R' U R U2 r'
+R U2 R2 U' R U' R' U2 F R F'
+r U r' U R U' R' U R U' R' r U' r'
+R U R' U' M' U R U' r'
+`.trim().split(/\r?\n/);
+
+    const pllAlgorithms = [
+        ["Aa", "x R' U R' D2 R U' R' D2 R2 x'"],
+        ["Ab", "x R2 D2 R U R' D2 R U' R x'"],
+        ["E", "y x' R U' R' D R U R' D' R U R' D R U' R' D' x"],
+        ["F", "y R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"],
+        ["Ga", "R2 U R' U R' U' R U' R2 D U' R' U R D'"],
+        ["Gb", "R' U' R U D' R2 U R' U R U' R U' R2 D"],
+        ["Gc", "R2 U' R U' R U R' U R2 D' U R U' R' D"],
+        ["Gd", "R U R' U' D R2 U' R U' R' U R' U R2 D'"],
+        ["H", "M2 U' M2 U2 M2 U' M2"],
+        ["Ja", "y R' U L' U2 R U' R' U2 R L"],
+        ["Jb", "R U R' F' R U R' U' R' F R2 U' R'"],
+        ["Na", "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'"],
+        ["Nb", "R' U R U' R' F' U' F R U R' F R' F' R U' R"],
+        ["Ra", "y R U' R' U' R U R D R' U' R D' R' U2 R'"],
+        ["Rb", "R' U2 R U2 R' F R U R' U' R' F' R2"],
+        ["T", "R U R' U' R' F R2 U' R' U' R U R' F'"],
+        ["Ua", "y2 R U' R U R U R U' R' U' R2"],
+        ["Ub", "R' U R' U' R' U' R' U R U R2"],
+        ["V", "R' U R' U' R D' R' D R' U D' R2 U' R2 D R2"],
+        ["Y", "F R U' R' U' R U R' F' R U R' U' R' F R F'"],
+        ["Z", "M' U' M2 U' M2 U' M' U2 M2"]
+    ];
+
     const cases = [
-        {
-            id: "oll-sune", category: "OLL", name: "Sune", kicker: "Orientation · corner pattern",
-            description: "A classic last-layer orientation case. Keep yellow on top and hold the cube so the unsolved corner pattern faces you.",
-            recognition: "One top-layer corner is oriented; the Sune pattern twists the remaining corners while preserving the lower two layers.",
-            algorithm: "R U R' U R U2 R'"
-        },
-        {
-            id: "oll-antisune", category: "OLL", name: "Anti-Sune", kicker: "Orientation · corner pattern",
-            description: "The mirrored Sune case. Keep yellow on top and use the same front face throughout the sequence.",
-            recognition: "This is the opposite corner-twist direction from Sune. Match the pattern, then play the sequence to orient the top.",
-            algorithm: "R U2 R' U' R U' R'"
-        },
-        {
-            id: "pll-t", category: "PLL", name: "T Perm", kicker: "Permutation · corners + edges",
-            description: "A common last-layer permutation that swaps a pair of corners and a pair of edges. The top face is already oriented.",
-            recognition: "Look for two adjacent corners that need to swap, along with the matching edge swap. The algorithm keeps the first two layers intact.",
-            algorithm: "R U R' U' R' F R2 U' R' U' R U R' F'"
-        },
-        {
-            id: "pll-ua", category: "PLL", name: "Ua Perm", kicker: "Permutation · edge cycle",
-            description: "A three-edge cycle with the corners already in their correct positions. The U-a algorithm cycles the top edges.",
-            recognition: "The corners match their side centers; three top edges need to cycle around the layer.",
-            algorithm: "R U' R U R U R U' R' U' R2"
-        }
+        ...ollAlgorithms.map((algorithm, index) => ({
+            id: `oll-${String(index + 1).padStart(2, "0")}`,
+            category: "OLL",
+            name: `OLL ${index + 1}`,
+            kicker: `Orientation · case ${index + 1}`,
+            description: "Orient the last layer while keeping the lower two layers solved. The cube is loaded into this case using the inverse of the displayed algorithm.",
+            recognition: "Match the yellow-sticker pattern on the cube and keep yellow on top as you start the algorithm.",
+            algorithm
+        })),
+        ...pllAlgorithms.map(([name, algorithm]) => ({
+            id: `pll-${name.toLowerCase()}`,
+            category: "PLL",
+            name: `${name} Perm`,
+            kicker: `Permutation · ${name}`,
+            description: "Permute the last-layer pieces while keeping the first two layers solved. The cube is loaded into this case using the inverse of the displayed algorithm.",
+            recognition: "The preview shows the top-layer permutation with the last layer oriented.",
+            algorithm
+        }))
     ];
 
     const cubeRoot = document.getElementById("cube-root");
@@ -120,7 +218,7 @@
         if (!move) return;
         const selected = cubies.filter(cubie => {
             const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            return coordinate * move.sign === 1;
+            return move.layers.includes(coordinate);
         });
         selected.forEach(cubie => rotateCubie(cubie, move));
         cubies.forEach(drawCubie);
@@ -134,12 +232,14 @@
     }
 
     function parseMove(token) {
-        const face = token[0].toUpperCase();
-        const info = faces[face];
-        if (!info) return null;
+        const definition = moveDefinitions[token[0]];
+        if (!definition) return null;
         const direction = token.includes("'") ? -1 : 1;
         const turns = token.includes("2") ? 2 : 1;
-        return { face, axis: info.axis, sign: info.sign, quarterTurns: -info.sign * direction * turns };
+        return {
+            ...definition,
+            quarterTurns: -definition.sign * direction * turns
+        };
     }
 
     function renderAlgorithm(sequence) {
@@ -153,7 +253,7 @@
             button.type = "button";
             button.textContent = token.replace("'", "′");
             const direction = token.includes("2") ? "halfway around" : token.includes("'") ? "counterclockwise" : "clockwise";
-            button.setAttribute("aria-label", `Animate ${button.textContent}: turn the ${faceNames[move.face].name} face ${direction}`);
+            button.setAttribute("aria-label", `Animate ${button.textContent}: ${move.label}, ${direction}`);
             button.addEventListener("click", () => enqueue(token));
             container.appendChild(button);
         }
@@ -208,7 +308,7 @@
         const move = parseMove(token);
         const selected = cubies.filter(cubie => {
             const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
-            return coordinate * move.sign === 1;
+            return move.layers.includes(coordinate);
         });
         const layer = document.createElement("div");
         layer.className = "turn-layer";
