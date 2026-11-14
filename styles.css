@@ -210,18 +210,31 @@
         .sticker.B { background: #4b83df; }
         @keyframes float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
         .cube-panel-bottom { position: relative; z-index: 1; }
-        .cube-view-reference { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 0 0 17px; }
-        .top-face-view, .notation-net-view { min-width: 0; }
+        .cube-view-reference { display: flex; align-items: center; justify-content: center; padding: 0 0 17px; }
+        .case-pattern-view { min-width: 0; }
         .view-label { margin-bottom: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
         .view-label strong { color: var(--ink); font-size: 10px; font-weight: 650; }
         .view-label span { color: var(--muted); font-size: 9px; }
-        .top-face-grid { width: 78px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
-        .top-facelet { aspect-ratio: 1; border: 2px solid #101311; border-radius: 4px; background: #303632; }
-        .cube-net { width: 183px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); gap: 3px; }
-        .net-face { min-width: 0; }
-        .net-face-label { margin-bottom: 2px; display: block; color: var(--muted); font-size: 8px; font-weight: 700; line-height: 1; text-align: center; }
-        .net-face-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid #101311; background: #101311; }
-        .net-facelet { aspect-ratio: 1; background: #303632; }
+        .case-pattern-diagram { position: relative; }
+        .case-pattern-diagram.oll { width: 138px; }
+        .case-pattern-diagram.pll { width: 220px; }
+        .case-pattern-grid {
+            width: 100%;
+            display: grid;
+            aspect-ratio: 1;
+            gap: 3px;
+            border: 3px solid #101311;
+            border-radius: 6px;
+            background: #101311;
+            overflow: hidden;
+        }
+        .case-pattern-diagram.oll .case-pattern-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .case-pattern-diagram.pll .case-pattern-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .case-pattern-sticker { min-width: 0; border: 1px solid rgba(0,0,0,.4); border-radius: 3px; box-shadow: inset 0 1px 2px rgba(255,255,255,.18); }
+        .case-pattern-sticker.side-sticker { border-radius: 1px; }
+        .case-pattern-blank { background: #171a18; }
+        .pll-arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+        .pll-arrow-path { fill: none; stroke: #171a18; stroke-width: .045; stroke-linecap: round; filter: drop-shadow(0 0 1px rgba(255,255,255,.9)); }
         .move-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .toolbar-label { width: 100%; margin-bottom: 3px; color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
         .move-button {
@@ -441,7 +454,7 @@
             .lesson-content { padding-top: 27px; }
             .cube-panel { min-height: 470px; padding: 19px; }
             .cube-stage { min-height: 280px; }
-            .cube-view-reference { flex-wrap: wrap; gap: 14px; }
+            .case-pattern-diagram.pll { width: min(220px, 100%); }
             .library-tools { align-items: stretch; flex-direction: column; gap: 10px; }
             .case-tabs { align-self: flex-start; }
             .case-search input { width: 100%; }

@@ -153,6 +153,7 @@ R U R' U' M' U R U' r'
     let selectedCase = null;
     let pendingCase = null;
     let cubies = [];
+    let casePermutationArrows = [];
     const unit = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--unit"));
 
     function makeCube() {
@@ -166,7 +167,7 @@ R U R' U' M' U R U' r'
                     }
                     const element = document.createElement("div");
                     element.className = "cubie";
-                    const cubie = { x, y, z, stickers, element };
+                    const cubie = { id: `${x},${y},${z}`, x, y, z, stickers, element };
                     cubies.push(cubie);
                     cubeRoot.appendChild(element);
                     drawCubie(cubie);
@@ -204,48 +205,107 @@ R U R' U' M' U R U' r'
             return cubie && cubie.stickers[face] ? cubie.stickers[face] : "#303632";
         }
 
-        const topGrid = document.getElementById("top-face-grid");
-        topGrid.replaceChildren();
-        for (let row = 0; row < 3; row++) {
-            for (let column = 0; column < 3; column++) {
-                const sticker = document.createElement("i");
-                sticker.className = "top-facelet";
-                sticker.style.backgroundColor = colorAt("U", row, column);
-                topGrid.appendChild(sticker);
-            }
-        }
+        const category = selectedCase ? selectedCase.category : "OLL";
+        const isPll = category === "PLL";
+        const diagram = document.getElementById("case-pattern-diagram");
+        diagram.className = `case-pattern-diagram ${isPll ? "pll" : "oll"}`;
+        diagram.setAttribute("aria-label", isPll
+            ? "Top-down PLL view with side colors and piece permutation arrows"
+            : "Top-down OLL view showing the yellow sticker pattern");
+        document.getElementById("case-view-title").textContent = isPll ? "PLL · top + sides" : "OLL · top view";
+        document.getElementById("case-view-subtitle").textContent = isPll ? "Piece permutation" : "Yellow pattern";
 
-        const net = document.getElementById("cube-net");
-        net.replaceChildren();
-        const layout = {
-            U: [1, 2], L: [2, 1], F: [2, 2],
-            R: [2, 3], B: [2, 4], D: [3, 2]
-        };
-        for (const face of ["U", "L", "F", "R", "B", "D"]) {
-            const faceView = document.createElement("div");
-            faceView.className = "net-face";
-            faceView.style.gridRow = layout[face][0];
-            faceView.style.gridColumn = layout[face][1];
-            faceView.title = `${face} · ${faceNames[face].name}`;
-
-            const label = document.createElement("span");
-            label.className = "net-face-label";
-            label.textContent = face;
-            faceView.appendChild(label);
-
-            const faceGrid = document.createElement("span");
-            faceGrid.className = "net-face-grid";
-            for (let row = 0; row < 3; row++) {
-                for (let column = 0; column < 3; column++) {
-                    const sticker = document.createElement("i");
-                    sticker.className = "net-facelet";
-                    sticker.style.backgroundColor = colorAt(face, row, column);
-                    faceGrid.appendChild(sticker);
+        const grid = document.createElement("div");
+        grid.className = "case-pattern-grid";
+        const size = isPll ? 5 : 3;
+        for (let row = 0; row < size; row++) {
+            for (let column = 0; column < size; column++) {
+                let face;
+                let faceRow;
+                let faceColumn;
+                if (!isPll) {
+                    face = "U";
+                    faceRow = row;
+                    faceColumn = column;
+                } else if (row >= 1 && row <= 3 && column >= 1 && column <= 3) {
+                    face = "U";
+                    faceRow = row - 1;
+                    faceColumn = column - 1;
+                } else if (row === 0 && column >= 1 && column <= 3) {
+                    face = "B";
+                    faceRow = 0;
+                    faceColumn = 3 - column;
+                } else if (row === 4 && column >= 1 && column <= 3) {
+                    face = "F";
+                    faceRow = 0;
+                    faceColumn = column - 1;
+                } else if (column === 0 && row >= 1 && row <= 3) {
+                    face = "L";
+                    faceRow = 0;
+                    faceColumn = row - 1;
+                } else if (column === 4 && row >= 1 && row <= 3) {
+                    face = "R";
+                    faceRow = 0;
+                    faceColumn = 3 - row;
                 }
+
+                const cell = document.createElement("i");
+                if (!face) {
+                    cell.className = "case-pattern-blank";
+                } else {
+                    const isTopFace = face === "U";
+                    const color = colorAt(face, faceRow, faceColumn);
+                    cell.className = `case-pattern-sticker${isTopFace ? " top-sticker" : " side-sticker"}`;
+                    cell.style.backgroundColor = !isPll && color !== faces.U.color ? "#3d423e" : color;
+                    cell.setAttribute("aria-hidden", "true");
+                }
+                grid.appendChild(cell);
             }
-            faceView.appendChild(faceGrid);
-            net.appendChild(faceView);
         }
+        diagram.replaceChildren(grid);
+        if (isPll) diagram.appendChild(createPermutationArrowOverlay());
+    }
+
+    function createPermutationArrowOverlay() {
+        const namespace = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(namespace, "svg");
+        svg.setAttribute("class", "pll-arrows");
+        svg.setAttribute("viewBox", "0 0 5 5");
+        svg.setAttribute("aria-hidden", "true");
+        const defs = document.createElementNS(namespace, "defs");
+        const marker = document.createElementNS(namespace, "marker");
+        marker.setAttribute("id", "pll-arrowhead");
+        marker.setAttribute("viewBox", "0 0 10 10");
+        marker.setAttribute("refX", "8");
+        marker.setAttribute("refY", "5");
+        marker.setAttribute("markerWidth", "0.24");
+        marker.setAttribute("markerHeight", "0.24");
+        marker.setAttribute("orient", "auto-start-reverse");
+        const arrowHead = document.createElementNS(namespace, "path");
+        arrowHead.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+        arrowHead.setAttribute("fill", "#171a18");
+        marker.appendChild(arrowHead);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        casePermutationArrows.forEach((arrow, index) => {
+            const startX = arrow.start.x + 2.5;
+            const startY = arrow.start.z + 2.5;
+            const endX = arrow.end.x + 2.5;
+            const endY = arrow.end.z + 2.5;
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+            const distance = Math.hypot(deltaX, deltaY) || 1;
+            const bend = index % 2 === 0 ? 0.22 : -0.22;
+            const controlX = (startX + endX) / 2 - (deltaY / distance) * bend;
+            const controlY = (startY + endY) / 2 + (deltaX / distance) * bend;
+            const path = document.createElementNS(namespace, "path");
+            path.setAttribute("d", `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`);
+            path.setAttribute("marker-end", "url(#pll-arrowhead)");
+            path.setAttribute("class", "pll-arrow-path");
+            svg.appendChild(path);
+        });
+        return svg;
     }
 
     function rotateVector(vector, axis, quarterTurns) {
@@ -271,6 +331,25 @@ R U R' U' M' U R U' r'
             rotatedStickers[faceFromNormal(rotateVector(normals[face], move.axis, move.quarterTurns))] = color;
         }
         cubie.stickers = rotatedStickers;
+    }
+
+    function getCasePermutationArrows(caseItem) {
+        const finalPositions = cubies.map(({ id, x, y, z }) => ({ id, x, y, z }));
+        caseItem.algorithm.trim().split(/\s+/).forEach(token => {
+            const move = parseMove(token);
+            if (!move) return;
+            finalPositions.filter(cubie => {
+                const coordinate = move.axis === "x" ? cubie.x : move.axis === "y" ? cubie.y : cubie.z;
+                return move.layers.includes(coordinate);
+            }).forEach(cubie => {
+                [cubie.x, cubie.y, cubie.z] = rotateVector([cubie.x, cubie.y, cubie.z], move.axis, move.quarterTurns);
+            });
+        });
+        const destinations = new Map(finalPositions.map(cubie => [cubie.id, cubie]));
+        return cubies
+            .filter(cubie => cubie.y === 1 && (cubie.x !== 0 || cubie.z !== 0))
+            .map(cubie => ({ start: { x: cubie.x, z: cubie.z }, end: destinations.get(cubie.id) }))
+            .filter(arrow => arrow.end && arrow.end.y === 1 && (arrow.start.x !== arrow.end.x || arrow.start.z !== arrow.end.z));
     }
 
     function applyMoveToState(token) {
@@ -348,6 +427,7 @@ R U R' U' M' U R U' r'
         cubeRoot.replaceChildren();
         makeCube();
         inverseAlgorithm(caseItem.algorithm).forEach(applyMoveToState);
+        casePermutationArrows = caseItem.category === "PLL" ? getCasePermutationArrows(caseItem) : [];
         renderCubeViews();
         renderCase(caseItem);
         cubeStatus.textContent = `${caseItem.name} case loaded`;
