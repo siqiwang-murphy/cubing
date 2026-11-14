@@ -1,7 +1,7 @@
 (() => {
     const faces = {
-        U: { axis: "y", sign: 1, color: "#f0eee3" },
-        D: { axis: "y", sign: -1, color: "#f3d54b" },
+        U: { axis: "y", sign: 1, color: "#f3d54b" },
+        D: { axis: "y", sign: -1, color: "#f0eee3" },
         R: { axis: "x", sign: 1, color: "#e34f42" },
         L: { axis: "x", sign: -1, color: "#ed8a43" },
         F: { axis: "z", sign: 1, color: "#49b878" },
@@ -188,6 +188,66 @@ R U R' U' M' U R U' r'
         }
     }
 
+    function renderCubeViews() {
+        function positionFor(face, row, column) {
+            if (face === "U") return { x: column - 1, y: 1, z: row - 1 };
+            if (face === "D") return { x: column - 1, y: -1, z: 1 - row };
+            if (face === "F") return { x: column - 1, y: 1 - row, z: 1 };
+            if (face === "B") return { x: 1 - column, y: 1 - row, z: -1 };
+            if (face === "R") return { x: 1, y: 1 - row, z: 1 - column };
+            return { x: -1, y: 1 - row, z: column - 1 };
+        }
+
+        function colorAt(face, row, column) {
+            const position = positionFor(face, row, column);
+            const cubie = cubies.find(item => item.x === position.x && item.y === position.y && item.z === position.z);
+            return cubie && cubie.stickers[face] ? cubie.stickers[face] : "#303632";
+        }
+
+        const topGrid = document.getElementById("top-face-grid");
+        topGrid.replaceChildren();
+        for (let row = 0; row < 3; row++) {
+            for (let column = 0; column < 3; column++) {
+                const sticker = document.createElement("i");
+                sticker.className = "top-facelet";
+                sticker.style.backgroundColor = colorAt("U", row, column);
+                topGrid.appendChild(sticker);
+            }
+        }
+
+        const net = document.getElementById("cube-net");
+        net.replaceChildren();
+        const layout = {
+            U: [1, 2], L: [2, 1], F: [2, 2],
+            R: [2, 3], B: [2, 4], D: [3, 2]
+        };
+        for (const face of ["U", "L", "F", "R", "B", "D"]) {
+            const faceView = document.createElement("div");
+            faceView.className = "net-face";
+            faceView.style.gridRow = layout[face][0];
+            faceView.style.gridColumn = layout[face][1];
+            faceView.title = `${face} · ${faceNames[face].name}`;
+
+            const label = document.createElement("span");
+            label.className = "net-face-label";
+            label.textContent = face;
+            faceView.appendChild(label);
+
+            const faceGrid = document.createElement("span");
+            faceGrid.className = "net-face-grid";
+            for (let row = 0; row < 3; row++) {
+                for (let column = 0; column < 3; column++) {
+                    const sticker = document.createElement("i");
+                    sticker.className = "net-facelet";
+                    sticker.style.backgroundColor = colorAt(face, row, column);
+                    faceGrid.appendChild(sticker);
+                }
+            }
+            faceView.appendChild(faceGrid);
+            net.appendChild(faceView);
+        }
+    }
+
     function rotateVector(vector, axis, quarterTurns) {
         let [x, y, z] = vector;
         const turns = ((quarterTurns % 4) + 4) % 4;
@@ -288,6 +348,7 @@ R U R' U' M' U R U' r'
         cubeRoot.replaceChildren();
         makeCube();
         inverseAlgorithm(caseItem.algorithm).forEach(applyMoveToState);
+        renderCubeViews();
         renderCase(caseItem);
         cubeStatus.textContent = `${caseItem.name} case loaded`;
     }
@@ -332,6 +393,7 @@ R U R' U' M' U R U' r'
                 drawCubie(cubie);
             });
             layer.remove();
+            renderCubeViews();
             cubeStatus.textContent = moveQueue.length ? "Next move…" : "Ready to explore";
             busy = false;
             if (pendingCase) {
