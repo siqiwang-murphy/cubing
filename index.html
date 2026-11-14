@@ -24,10 +24,15 @@
         <section class="intro" id="algorithms">
             <p class="eyebrow">3×3 algorithm trainer</p>
             <h1>Know the case.<br><span>Learn the alg.</span></h1>
-            <p class="intro-copy">Choose an OLL or PLL case, study its cube pattern, then watch the algorithm solve it move by move.</p>
+            <p class="intro-copy">Choose an OLL or PLL case to open its algorithm and 3D cube, then play the solution move by move.</p>
         </section>
 
-        <section class="workspace" aria-label="Algorithm case and 3D cube">
+        <dialog class="case-dialog" id="case-dialog" aria-label="Algorithm case and 3D cube">
+            <div class="case-dialog-header">
+                <span>Case and cube</span>
+                <button class="button secondary" id="close-case-dialog" type="button">Close</button>
+            </div>
+            <section class="workspace" aria-label="Algorithm case and 3D cube">
             <div class="lesson-panel case-detail">
                 <div class="step-meta">
                     <span id="case-category">PLL</span>
@@ -125,7 +130,8 @@
                     </div>
                 </div>
             </div>
-        </section>
+            </section>
+        </dialog>
 
         <section class="case-library" id="case-library" aria-labelledby="case-library-title">
             <div class="section-heading">

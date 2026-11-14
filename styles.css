@@ -73,6 +73,19 @@
         h1 span { color: var(--lime); }
         .intro-copy { max-width: 520px; margin: 18px 0 0; color: var(--muted); font-size: 16px; }
 
+        .case-dialog {
+            width: min(1120px, calc(100% - 32px));
+            max-width: none;
+            max-height: calc(100vh - 24px);
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 17px;
+            background: #111313;
+            color: var(--ink);
+            overflow-y: auto;
+        }
+        .case-dialog::backdrop { background: rgba(0,0,0,.76); backdrop-filter: blur(4px); }
+        .case-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; color: var(--muted); font-size: 12px; }
         .workspace {
             min-height: 540px;
             display: grid;
@@ -405,6 +418,9 @@
         }
         .case-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.25); }
         .case-card[aria-pressed="true"] { border-color: rgba(211,243,107,.7); background: rgba(211,243,107,.055); }
+        .case-card.is-solved { border-color: rgba(99,205,130,.55); background: rgba(30,99,60,.32); }
+        .case-card.is-solved:hover { border-color: rgba(112,224,145,.8); background: rgba(30,99,60,.45); }
+        .case-card.is-solved[aria-pressed="true"] { border-color: rgba(132,232,159,.8); background: rgba(35,115,68,.4); }
         .case-card-meta { width: 100%; display: flex; justify-content: space-between; color: var(--lime); font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
         .case-card-title-row { width: 100%; display: flex; align-items: center; gap: 11px; }
         .case-card-title { font-size: 17px; font-weight: 650; letter-spacing: -.025em; }

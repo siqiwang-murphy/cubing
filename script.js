@@ -760,6 +760,7 @@
     }
 
     const caseGrid = document.getElementById("case-grid");
+    const caseDialog = document.getElementById("case-dialog");
 
     function renderCaseGrid() {
         const query = document.getElementById("case-search").value.trim().toLowerCase();
@@ -778,7 +779,7 @@
         }
         visibleCases.forEach(caseItem => {
             const card = document.createElement("button");
-            card.className = "case-card";
+            card.className = `case-card${isCaseSolved(caseItem) ? " is-solved" : ""}`;
             card.type = "button";
             card.dataset.caseId = caseItem.id;
             card.setAttribute("aria-pressed", String(selectedCase !== null && selectedCase.id === caseItem.id));
@@ -808,7 +809,10 @@
             completion.textContent = "Solved · Know one solution";
             completion.hidden = !isCaseSolved(caseItem);
             card.append(meta, titleRow, pattern, algorithm, completion);
-            card.addEventListener("click", () => loadCase(caseItem));
+            card.addEventListener("click", () => {
+                loadCase(caseItem);
+                caseDialog.showModal();
+            });
             caseGrid.appendChild(card);
         });
     }
@@ -848,6 +852,7 @@
     document.getElementById("previous-case").addEventListener("click", () => navigateCase(-1));
     document.getElementById("next-case").addEventListener("click", () => navigateCase(1));
     document.getElementById("case-search").addEventListener("input", renderCaseGrid);
+    document.getElementById("close-case-dialog").addEventListener("click", () => caseDialog.close());
     document.querySelectorAll(".move-button").forEach(button => button.addEventListener("click", () => enqueue(button.dataset.move)));
     function updateCubeView() {
         cubeOrbit.style.transform = `rotateX(${viewRotation.x}deg) rotateY(${viewRotation.y}deg) rotateZ(${viewRotation.z || 0}deg) rotateX(${viewAlignment.x}deg) rotateY(${viewAlignment.y}deg) rotateZ(${viewAlignment.z}deg)`;
