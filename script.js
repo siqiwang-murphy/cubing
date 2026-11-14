@@ -70,7 +70,7 @@
             }
             if (!parsed.moves || seenMoves.has(parsed.moves)) continue;
             seenMoves.add(parsed.moves);
-            solutions.push({ label: solution.label, moves: parsed.moves });
+            solutions.push({ moves: parsed.moves });
         }
         if (solutions.length === 0) {
             throw new Error(`No usable J Perm algorithms were found for ${caseId}.`);
@@ -109,6 +109,8 @@
         }))
     ];
     const cubeRoot = document.getElementById("cube-root");
+    const cubeStage = document.querySelector(".cube-stage");
+    const cubeOrbit = document.querySelector(".cube-orbit");
     const cubeStatus = document.getElementById("cube-status");
     const moveQueue = [];
     let busy = false;
@@ -120,6 +122,10 @@
     let cubies = [];
     let casePermutationArrows = [];
     const casePreviewStates = new Map();
+    const defaultViewRotation = { x: -24, y: -34 };
+    const viewRotation = { ...defaultViewRotation };
+    let viewAlignment = { x: 0, y: 0, z: 0 };
+    let isPlayingAlgorithm = false;
     const unit = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--unit"));
 
     function createSolvedCubeState() {
@@ -236,6 +242,7 @@
                 return move.layers.includes(coordinate);
             }).forEach(cubie => rotateCubie(cubie, move));
         });
+        if (caseItem.category === "PLL") orientYellowOnTop(state);
         casePreviewStates.set(cacheKey, state);
         return state;
     }
@@ -251,14 +258,14 @@
             : "Top-down OLL view showing the yellow sticker pattern and side colors");
         document.getElementById("case-view-title").textContent = isPll ? "PLL · top + sides" : "OLL · top + sides";
         document.getElementById("case-view-subtitle").textContent = isPll ? "Piece permutation" : "Yellow pattern";
-        diagram.replaceChildren(createCasePatternGrid(caseItem, cubies));
+        diagram.replaceChildren(createCasePatternGrid(caseItem, isPll ? getYellowTopState(cubies) : cubies));
         if (isPll) diagram.appendChild(createPermutationArrowOverlay());
     }
 
     function renderCaseTitlePreview(caseItem, state) {
         const preview = document.getElementById("case-title-preview");
         preview.className = `case-title-preview ${caseItem.category.toLowerCase()}`;
-        preview.replaceChildren(createCasePatternGrid(caseItem, state));
+        preview.replaceChildren(createCasePatternGrid(caseItem, caseItem.category === "PLL" ? getYellowTopState(state) : state));
     }
 
     function createPermutationArrowOverlay() {
@@ -320,6 +327,59 @@
             rotatedStickers[faceFromNormal(rotateVector(normals[face], move.axis, move.quarterTurns))] = color;
         }
         cubie.stickers = rotatedStickers;
+    }
+
+    function orientYellowOnTop(state) {
+        const yellowFace = getYellowCenterFace(state);
+        const rotations = {
+            U: null,
+            D: { axis: "x", quarterTurns: 2 },
+            R: { axis: "z", quarterTurns: 1 },
+            L: { axis: "z", quarterTurns: 3 },
+            F: { axis: "x", quarterTurns: 3 },
+            B: { axis: "x", quarterTurns: 1 }
+        };
+        const rotation = rotations[yellowFace];
+        if (!rotation) return;
+        state.forEach(cubie => rotateCubie(cubie, rotation));
+    }
+
+    function getYellowCenterFace(state) {
+        const yellowCenter = state.find(cubie =>
+            Object.keys(cubie.stickers).length === 1 &&
+            Object.values(cubie.stickers).includes(faces.U.color)
+        );
+        if (!yellowCenter) throw new Error("Could not find the yellow center while orienting a PLL case.");
+
+        const yellowFace = Object.keys(yellowCenter.stickers).find(face => yellowCenter.stickers[face] === faces.U.color);
+        if (!["U", "D", "R", "L", "F", "B"].includes(yellowFace)) {
+            throw new Error("Could not determine the yellow center's face while orienting a PLL case.");
+        }
+        return yellowFace;
+    }
+
+    function getYellowTopViewAlignment(state) {
+        const alignments = {
+            U: { x: 0, y: 0, z: 0 },
+            D: { x: 180, y: 0, z: 0 },
+            R: { x: 0, y: 0, z: -90 },
+            L: { x: 0, y: 0, z: 90 },
+            F: { x: 90, y: 0, z: 0 },
+            B: { x: -90, y: 0, z: 0 }
+        };
+        return alignments[getYellowCenterFace(state)];
+    }
+
+    function getYellowTopState(state) {
+        const displayState = state.map(({ id, x, y, z, stickers }) => ({
+            id,
+            x,
+            y,
+            z,
+            stickers: { ...stickers }
+        }));
+        orientYellowOnTop(displayState);
+        return displayState;
     }
 
     function getCasePermutationArrows(algorithm) {
@@ -404,12 +464,12 @@
         caseItem.solutions.forEach((solution, index) => {
             const option = document.createElement("option");
             option.value = String(index);
-            option.textContent = `${index + 1}. ${solution.label}`;
+            option.textContent = solution.moves.replace(/'/g, "′");
             algorithmChoice.appendChild(option);
         });
         algorithmChoice.value = String(solutionIndex);
         document.getElementById("algorithm-source").href = caseItem.sourceUrl;
-        document.getElementById("algorithm-label").textContent = `${selectedSolution.label} · tap a move to animate it`;
+        document.getElementById("algorithm-label").textContent = "Tap a turn to animate it on the cube";
         renderAlgorithm(selectedSolution.moves);
         const customSolution = caseItem.solutions.find(solution => solution.isCustom);
         const customInput = document.getElementById("custom-algorithm-input");
@@ -446,7 +506,7 @@
         input.removeAttribute("aria-invalid");
         let solutionIndex = selectedCase.solutions.findIndex(solution => solution.isCustom);
         if (solutionIndex < 0) {
-            selectedCase.solutions.push({ label: "Your custom algorithm", moves: parsed.moves, isCustom: true });
+            selectedCase.solutions.push({ moves: parsed.moves, isCustom: true });
             solutionIndex = selectedCase.solutions.length - 1;
         } else {
             selectedCase.solutions[solutionIndex].moves = parsed.moves;
@@ -485,6 +545,14 @@
         makeCube();
         const algorithm = caseItem.solutions[solutionIndex].moves;
         inverseAlgorithm(algorithm).forEach(applyMoveToState);
+        isPlayingAlgorithm = false;
+        viewRotation.x = defaultViewRotation.x;
+        viewRotation.y = defaultViewRotation.y;
+        viewRotation.z = 0;
+        viewAlignment = caseItem.category === "PLL"
+            ? getYellowTopViewAlignment(cubies)
+            : { x: 0, y: 0, z: 0 };
+        updateCubeView();
         casePermutationArrows = caseItem.category === "PLL" ? getCasePermutationArrows(algorithm) : [];
         renderCubeViews();
         renderCase(caseItem, solutionIndex);
@@ -557,6 +625,11 @@
                 return;
             }
             cubeStatus.textContent = "Ready to explore";
+            if (isPlayingAlgorithm && selectedCase && selectedCase.category === "PLL") {
+                viewAlignment = getYellowTopViewAlignment(cubies);
+                updateCubeView();
+            }
+            isPlayingAlgorithm = false;
             busy = false;
         }, duration);
     }
@@ -646,8 +719,57 @@
     document.getElementById("next-case").addEventListener("click", () => navigateCase(1));
     document.getElementById("case-search").addEventListener("input", renderCaseGrid);
     document.querySelectorAll(".move-button").forEach(button => button.addEventListener("click", () => enqueue(button.dataset.move)));
+    function updateCubeView() {
+        cubeOrbit.style.transform = `rotateX(${viewRotation.x}deg) rotateY(${viewRotation.y}deg) rotateZ(${viewRotation.z || 0}deg) rotateX(${viewAlignment.x}deg) rotateY(${viewAlignment.y}deg) rotateZ(${viewAlignment.z}deg)`;
+    }
+
+    function rotateCubeView(deltaX, deltaY) {
+        viewRotation.x += deltaX;
+        viewRotation.y += deltaY;
+        updateCubeView();
+    }
+
+    document.getElementById("rotate-cube-left").addEventListener("click", () => rotateCubeView(0, -90));
+    document.getElementById("rotate-cube-right").addEventListener("click", () => rotateCubeView(0, 90));
+    document.getElementById("rotate-cube-up").addEventListener("click", () => rotateCubeView(90, 0));
+    document.getElementById("rotate-cube-down").addEventListener("click", () => rotateCubeView(-90, 0));
+    document.getElementById("reset-cube-view").addEventListener("click", () => {
+        viewRotation.x = defaultViewRotation.x;
+        viewRotation.y = defaultViewRotation.y;
+        updateCubeView();
+    });
+
+    let activePointer = null;
+    cubeStage.addEventListener("pointerdown", event => {
+        if (event.button !== 0 || activePointer !== null) return;
+        activePointer = {
+            id: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            viewX: viewRotation.x,
+            viewY: viewRotation.y
+        };
+        cubeStage.setPointerCapture(event.pointerId);
+        cubeStage.classList.add("is-dragging");
+    });
+    cubeStage.addEventListener("pointermove", event => {
+        if (!activePointer || event.pointerId !== activePointer.id) return;
+        viewRotation.x = activePointer.viewX - (event.clientY - activePointer.y) * 0.5;
+        viewRotation.y = activePointer.viewY + (event.clientX - activePointer.x) * 0.5;
+        updateCubeView();
+    });
+    function finishCubeViewDrag(event) {
+        if (!activePointer || event.pointerId !== activePointer.id) return;
+        activePointer = null;
+        cubeStage.classList.remove("is-dragging");
+    }
+    cubeStage.addEventListener("pointerup", finishCubeViewDrag);
+    cubeStage.addEventListener("pointercancel", finishCubeViewDrag);
     document.getElementById("play-algorithm").addEventListener("click", () => {
-        if (selectedCase && !pendingCase) enqueue(selectedCase.solutions[selectedAlgorithmIndex].moves);
+        if (selectedCase && !pendingCase) {
+            isPlayingAlgorithm = true;
+            enqueue(selectedCase.solutions[selectedAlgorithmIndex].moves);
+        }
     });
     document.getElementById("reset-cube").addEventListener("click", () => {
         if (selectedCase) loadCase(selectedCase, selectedAlgorithmIndex);

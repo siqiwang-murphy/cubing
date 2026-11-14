@@ -48,11 +48,11 @@
                     <div class="lesson-tip"><strong>Recognize the case</strong><span id="case-recognition"></span></div>
                     <div class="algorithm">
                         <div class="algorithm-choice-row">
-                            <label for="algorithm-choice">Solution</label>
-                            <select id="algorithm-choice" aria-label="Choose an algorithm solution"></select>
+                            <label for="algorithm-choice">Turns</label>
+                            <select id="algorithm-choice" aria-label="Choose a move sequence"></select>
                             <a id="algorithm-source" href="https://jperm.net/algs/pll" target="_blank" rel="noopener noreferrer">J Perm ↗</a>
                         </div>
-                        <span class="algorithm-recommendation-note">J Perm's listed algorithms appear in order; the first is the default. Try your own below.</span>
+                        <span class="algorithm-recommendation-note">The first sequence is shown by default. Try your own below.</span>
                         <span class="algorithm-label" id="algorithm-label">Tap a move to animate it on the cube</span>
                         <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Case solution algorithm"></div>
                         <div class="custom-algorithm">
@@ -83,10 +83,18 @@
                     <span class="cube-title">Case on the cube</span>
                     <span class="cube-status" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="cube-status">Ready to explore</span></span>
                 </div>
-                <div class="cube-stage" role="img" aria-label="Interactive three-dimensional Rubik's Cube">
+                <div class="cube-stage" role="img" aria-label="Interactive three-dimensional Rubik's Cube. Drag to rotate the view.">
                     <div class="cube-orbit">
                         <div class="cube-root" id="cube-root"></div>
                     </div>
+                </div>
+                <div class="cube-view-controls" role="group" aria-label="Rotate cube view">
+                    <span class="cube-view-label">Rotate view</span>
+                    <button class="cube-view-control" id="rotate-cube-left" type="button" aria-label="Rotate view left" title="Rotate view left">←</button>
+                    <button class="cube-view-control" id="rotate-cube-up" type="button" aria-label="Rotate view up" title="Rotate view up">↑</button>
+                    <button class="cube-view-control" id="rotate-cube-down" type="button" aria-label="Rotate view down" title="Rotate view down">↓</button>
+                    <button class="cube-view-control" id="rotate-cube-right" type="button" aria-label="Rotate view right" title="Rotate view right">→</button>
+                    <button class="cube-view-control reset" id="reset-cube-view" type="button">Reset view</button>
                 </div>
                 <div class="cube-view-reference">
                     <div class="case-pattern-view">

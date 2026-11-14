@@ -227,7 +227,8 @@
         .cube-title { font-size: 12px; font-weight: 700; }
         .cube-status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
         .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 12px rgba(211,243,107,.6); }
-        .cube-stage { min-height: 298px; display: grid; place-items: center; overflow: hidden; perspective: 900px; }
+        .cube-stage { min-height: 298px; display: grid; place-items: center; overflow: hidden; perspective: 900px; cursor: grab; touch-action: none; }
+        .cube-stage.is-dragging { cursor: grabbing; }
         .cube-orbit {
             width: calc(var(--unit) * 3);
             height: calc(var(--unit) * 3);
@@ -236,6 +237,22 @@
             transform: rotateX(-24deg) rotateY(-34deg);
             animation: float 6s ease-in-out infinite;
         }
+        .cube-view-controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 0 15px; }
+        .cube-view-label { margin-right: 3px; color: var(--muted); font-size: 10px; }
+        .cube-view-control {
+            min-width: 32px;
+            height: 30px;
+            padding: 0 7px;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            background: rgba(255,255,255,.035);
+            color: var(--ink);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .cube-view-control:hover { border-color: var(--lime); color: var(--lime); }
+        .cube-view-control:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+        .cube-view-control.reset { color: var(--muted); font-size: 10px; }
         .cube-root, .turn-layer { position: absolute; inset: 0; transform-style: preserve-3d; }
         .turn-layer { transition: transform .48s cubic-bezier(.2,.72,.2,1); }
         .cubie {
