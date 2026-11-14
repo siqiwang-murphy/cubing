@@ -16,14 +16,6 @@
         R: [1, 0, 0], L: [-1, 0, 0],
         F: [0, 0, 1], B: [0, 0, -1]
     };
-    const faceNames = {
-        U: { name: "Up", position: "Top face" },
-        D: { name: "Down", position: "Bottom face" },
-        L: { name: "Left", position: "Left side" },
-        R: { name: "Right", position: "Right side" },
-        F: { name: "Front", position: "Facing you" },
-        B: { name: "Back", position: "Facing away" }
-    };
     const moveDefinitions = {
         U: { axis: "y", sign: 1, layers: [1], face: "U", label: "Up face" },
         D: { axis: "y", sign: -1, layers: [-1], face: "D", label: "Down face" },
@@ -44,183 +36,78 @@
         y: { axis: "y", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like U)" },
         z: { axis: "z", sign: 1, layers: [-1, 0, 1], label: "Whole cube rotation (like F)" }
     };
-    const ollAlgorithms = `
-R U2 R' R' F R F' U2 R' F R F'
-F R U R' U' F' f R U R' U' f'
-y' f R U R' U' f' U' F R U R' U' F'
-y' f R U R' U' f' U F R U R' U' F'
-r' U2 R U R' U r
-r U2 R' U' R U' r'
-r U R' U R U2 r'
-y2 r' U' R U' R' U2 r
-y R U R' U' R' F R U R U' R' F'
-R U R' U R' F R F' R U2 R'
-M R U R' U R U2 R' U M'
-y' M' R' U' R U' R' U2 R U' M
-r U' r' U' r U r' F' U F
-R' F R U R' F' R F U' F'
-r' U' r R' U' R U r' U r
-r U r' R U R' U' r U' r'
-R U R' U R' F R F' U2 R' F R F'
-y R U2 R2 F R F' U2 M' U R U' r'
-M U R U R' U' M' R' F R F'
-r U R' U' M2 U R U' R' U' M'
-R U R' U R U' R' U R U2 R'
-R U2 R2 U' R2 U' R2 U2 R
-R2 D R' U2 R D' R' U2 R'
-r U R' U' r' F R F'
-y F' r U R' U' r' F R
-y R U2 R' U' R U' R'
-R U R' U R U2 R'
-r U R' U' M U R U' R'
-r2 D' r U r' D r2 U' r' U' r
-y2 F U R U2 R' U' R U2 R' U' F'
-R' U' F U R U' R' F' R
-S R U R' U' R' F R f'
-R U R' U' R' F R F'
-y2 R U R2 U' R' F R U R U' F'
-R U2 R2 F R F' R U2 R'
-y2 L' U' L U' L' U L U L F' L' F
-F R U' R' U' R U R' F'
-R U R' U R U' R' U' R' F R F'
-y L F' L' U' L U F U' L'
-y R' F R U R' U' F' U R
-y2 R U R' U R U2 R' F R U R' U' F'
-R' U' R U' R' U2 R F R U R' U' F'
-y R' U' F' U F R
-f R U R' U' f'
-F R U R' U' F'
-R' U' R' F R F' U R
-F' L' U' L U L' U' L U F
-F R U R' U' R U R' U' F'
-y2 r U' r2 U r2 U r2 U' r
-r' U r2 U' r2 U' r2 U r'
-f R U R' U' R U R' U' f'
-y2 R' F' U' F U' R U R' U R
-r' U' R U' R' U R U' R' U2 r
-r U R' U R U' R' U R U2 r'
-R U2 R2 U' R U' R' U2 F R F'
-r U r' U R U' R' U R U' R' r U' r'
-R U R' U' M' U R U' r'
-`.trim().split(/\r?\n/);
+    function normalizeAlgorithm(sequence) {
+        const tokens = sequence
+            .replace(/[’′]/g, "'")
+            .replace(/[()]/g, " ")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(token => {
+                const wideTurn = token.match(/^([URFDLB])w(2|')?$/i);
+                if (wideTurn) token = `${wideTurn[1].toLowerCase()}${wideTurn[2] || ""}`;
+                const threeQuarterTurn = token.match(/^([URFDLBurfdlbMESxyz])3$/);
+                if (threeQuarterTurn) token = `${threeQuarterTurn[1]}'`;
+                return token;
+            });
+        return {
+            moves: tokens.join(" "),
+            invalidTokens: tokens.filter(token => !/^[URFDLBurfdlbMESxyz](?:2|')?$/.test(token))
+        };
+    }
 
-    const pllAlgorithms = [
-        ["Aa", "x R' U R' D2 R U' R' D2 R2 x'"],
-        ["Ab", "x R2 D2 R U R' D2 R U' R x'"],
-        ["E", "y x' R U' R' D R U R' D' R U R' D R U' R' D' x"],
-        ["F", "y R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"],
-        ["Ga", "R2 U R' U R' U' R U' R2 D U' R' U R D'"],
-        ["Gb", "R' U' R U D' R2 U R' U R U' R U' R2 D"],
-        ["Gc", "R2 U' R U' R U R' U R2 D' U R U' R' D"],
-        ["Gd", "R U R' U' D R2 U' R U' R' U R' U R2 D'"],
-        ["H", "M2 U' M2 U2 M2 U' M2"],
-        ["Ja", "y R' U L' U2 R U' R' U2 R L"],
-        ["Jb", "R U R' F' R U R' U' R' F R2 U' R'"],
-        ["Na", "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'"],
-        ["Nb", "R' U R U' R' F' U' F R U R' F R' F' R U' R"],
-        ["Ra", "y R U' R' U' R U R D R' U' R D' R' U2 R'"],
-        ["Rb", "R' U2 R U2 R' F R U R' U' R' F' R2"],
-        ["T", "R U R' U' R' F R2 U' R' U' R U R' F'"],
-        ["Ua", "y2 R U' R U R U R U' R' U' R2"],
-        ["Ub", "R' U R' U' R' U' R' U R U R2"],
-        ["V", "R' U R' U' R D' R' D R' U D' R2 U' R2 D R2"],
-        ["Y", "F R U' R' U' R U R' F' R U R' U' R' F R F'"],
-        ["Z", "M' U' M2 U' M2 U' M' U2 M2"]
-    ];
-
-    function getCaseSolutions(caseId, currentAlgorithm) {
-        const onlineSolutions = window.CUBE_ALGORITHM_VARIANTS[caseId];
-        if (!Array.isArray(onlineSolutions) || onlineSolutions.length === 0) {
-            throw new Error(`No online algorithms were loaded for ${caseId}.`);
+    function getCaseSolutions(caseId) {
+        const jPermSolutions = window.CUBE_ALGORITHM_VARIANTS[caseId];
+        if (!Array.isArray(jPermSolutions) || jPermSolutions.length === 0) {
+            throw new Error(`No J Perm algorithms were loaded for ${caseId}.`);
         }
         const solutions = [];
         const seenMoves = new Set();
-        const addSolution = (solution, label = solution.label) => {
-            const moves = solution.moves.trim().replace(/\s+/g, " ");
-            if (seenMoves.has(moves)) return;
-            seenMoves.add(moves);
-            const moveCount = moves.split(" ").length;
-            const hasSpeedCubeMetrics = Number.isFinite(solution.stm) && Number.isFinite(solution.etm);
-            solutions.push({
-                label,
-                moves,
-                votes: Number.isFinite(solution.votes) ? solution.votes : 0,
-                etm: hasSpeedCubeMetrics ? solution.etm : null,
-                stm: hasSpeedCubeMetrics ? solution.stm : null,
-                hasSpeedCubeMetrics
-            });
-        };
-        for (const solution of onlineSolutions) {
-            addSolution(solution);
+        for (const solution of jPermSolutions) {
+            const parsed = normalizeAlgorithm(solution.moves);
+            if (parsed.invalidTokens.length > 0) {
+                throw new Error(`Unsupported J Perm move notation for ${caseId}: ${parsed.invalidTokens.join(", ")}.`);
+            }
+            if (!parsed.moves || seenMoves.has(parsed.moves)) continue;
+            seenMoves.add(parsed.moves);
+            solutions.push({ label: solution.label, moves: parsed.moves });
         }
-        addSolution({ label: "Current algorithm", moves: currentAlgorithm });
-
-        const rankedSolutions = solutions.filter(solution => solution.hasSpeedCubeMetrics);
-        if (rankedSolutions.length === 0) {
-            throw new Error(`No SpeedCubeDB move metrics were loaded for ${caseId}.`);
+        if (solutions.length === 0) {
+            throw new Error(`No usable J Perm algorithms were found for ${caseId}.`);
         }
-        const easiest = rankedSolutions.reduce((best, solution) =>
-            solution.stm < best.stm ||
-            (solution.stm === best.stm && solution.etm < best.etm) ||
-            (solution.stm === best.stm && solution.etm === best.etm && solution.moves.length < best.moves.length)
-                ? solution
-                : best
-        );
-        const popularSolutions = rankedSolutions.filter(solution => solution.votes > 0);
-        const mostPopular = popularSolutions.length
-            ? popularSolutions.reduce((best, solution) =>
-                solution.votes > best.votes ||
-                (solution.votes === best.votes && solution.stm < best.stm)
-                    ? solution
-                    : best
-            )
-            : null;
+        return solutions;
+    }
 
-        const orderedSolutions = [easiest];
-        if (mostPopular && mostPopular !== easiest) orderedSolutions.push(mostPopular);
-        for (const solution of solutions) {
-            if (!orderedSolutions.includes(solution)) orderedSolutions.push(solution);
-        }
-
-        return orderedSolutions.map(solution => {
-            const recommendations = [];
-            if (solution === easiest) recommendations.push("Easiest");
-            if (solution === mostPopular) recommendations.push("Most popular");
-            const recommendationLabel = recommendations.length
-                ? `${recommendations.join(" + ")} · `
-                : "";
-            const moveCount = solution.moves.split(" ").length;
-            const stats = [solution.hasSpeedCubeMetrics ? `${solution.stm} STM` : `${moveCount} moves`];
-            if (solution.votes > 0) stats.push(`${solution.votes} votes`);
-            return { ...solution, label: `${recommendationLabel}${solution.label} · ${stats.join(" · ")}` };
-        });
+    const ollCaseIds = Object.keys(window.CUBE_ALGORITHM_VARIANTS)
+        .filter(caseId => caseId.startsWith("oll-"))
+        .sort((left, right) => Number(left.slice(4)) - Number(right.slice(4)));
+    const pllCaseNames = ["Aa", "Ab", "E", "F", "Ga", "Gb", "Gc", "Gd", "H", "Ja", "Jb", "Na", "Nb", "Ra", "Rb", "T", "Ua", "Ub", "V", "Y", "Z"];
+    if (ollCaseIds.length !== 57) {
+        throw new Error(`Expected 57 J Perm OLL cases, found ${ollCaseIds.length}.`);
     }
 
     const cases = [
-        ...ollAlgorithms.map((algorithm, index) => ({
-            id: `oll-${String(index + 1).padStart(2, "0")}`,
+        ...ollCaseIds.map((id, index) => ({
+            id,
             category: "OLL",
             name: `OLL ${index + 1}`,
             kicker: `Orientation · case ${index + 1}`,
             description: "Orient the last layer while keeping the lower two layers solved. The cube is loaded into this case using the inverse of the displayed algorithm.",
             recognition: "Match the yellow-sticker pattern on the cube and keep yellow on top as you start the algorithm.",
-            algorithm,
-            solutions: getCaseSolutions(`oll-${String(index + 1).padStart(2, "0")}`, algorithm),
-            sourceUrl: `https://speedcubedb.com/a/3x3/OLL/OLL_${index + 1}`
+            solutions: getCaseSolutions(id),
+            sourceUrl: "https://jperm.net/algs/oll"
         })),
-        ...pllAlgorithms.map(([name, algorithm]) => ({
+        ...pllCaseNames.map(name => ({
             id: `pll-${name.toLowerCase()}`,
             category: "PLL",
             name: `${name} Perm`,
             kicker: `Permutation · ${name}`,
             description: "Permute the last-layer pieces while keeping the first two layers solved. The cube is loaded into this case using the inverse of the displayed algorithm.",
             recognition: "The preview shows the top-layer permutation with the last layer oriented.",
-            algorithm,
-            solutions: getCaseSolutions(`pll-${name.toLowerCase()}`, algorithm),
-            sourceUrl: `https://speedcubedb.com/a/3x3/PLL/${name}`
+            solutions: getCaseSolutions(`pll-${name.toLowerCase()}`),
+            sourceUrl: "https://jperm.net/algs/pll"
         }))
     ];
-
     const cubeRoot = document.getElementById("cube-root");
     const cubeStatus = document.getElementById("cube-status");
     const moveQueue = [];
@@ -524,9 +411,48 @@ R U R' U' M' U R U' r'
         document.getElementById("algorithm-source").href = caseItem.sourceUrl;
         document.getElementById("algorithm-label").textContent = `${selectedSolution.label} · tap a move to animate it`;
         renderAlgorithm(selectedSolution.moves);
+        const customSolution = caseItem.solutions.find(solution => solution.isCustom);
+        const customInput = document.getElementById("custom-algorithm-input");
+        customInput.value = customSolution ? customSolution.moves : "";
+        customInput.removeAttribute("aria-invalid");
+        document.getElementById("custom-algorithm-status").textContent = customSolution
+            ? "A custom algorithm is available in this case's solution list."
+            : "Enter moves such as R, R', R2, r, M, or x.";
         document.querySelectorAll(".case-card").forEach(card => {
             card.setAttribute("aria-pressed", String(card.dataset.caseId === caseItem.id));
         });
+    }
+
+    function applyCustomAlgorithm() {
+        const input = document.getElementById("custom-algorithm-input");
+        const status = document.getElementById("custom-algorithm-status");
+        if (!selectedCase) {
+            status.textContent = "Choose a case before adding a custom algorithm.";
+            return;
+        }
+
+        const parsed = normalizeAlgorithm(input.value);
+        if (!parsed.moves) {
+            input.setAttribute("aria-invalid", "true");
+            status.textContent = "Enter at least one move.";
+            return;
+        }
+        if (parsed.invalidTokens.length > 0) {
+            input.setAttribute("aria-invalid", "true");
+            status.textContent = `Unsupported move notation: ${parsed.invalidTokens.join(", ")}.`;
+            return;
+        }
+
+        input.removeAttribute("aria-invalid");
+        let solutionIndex = selectedCase.solutions.findIndex(solution => solution.isCustom);
+        if (solutionIndex < 0) {
+            selectedCase.solutions.push({ label: "Your custom algorithm", moves: parsed.moves, isCustom: true });
+            solutionIndex = selectedCase.solutions.length - 1;
+        } else {
+            selectedCase.solutions[solutionIndex].moves = parsed.moves;
+        }
+        loadCase(selectedCase, solutionIndex);
+        status.textContent = "Custom algorithm added to this case's solutions.";
     }
 
     function navigateCase(direction) {
@@ -597,7 +523,7 @@ R U R' U' M' U R U' r'
             });
         });
         cubeStatus.textContent = `Turning ${token.replace("'", "′")}`;
-        const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 30 : 520;
+        const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 220 : 520;
         window.setTimeout(() => {
             selected.forEach(cubie => {
                 rotateCubie(cubie, move);
@@ -606,16 +532,32 @@ R U R' U' M' U R U' r'
             });
             layer.remove();
             renderCubeViews();
-            cubeStatus.textContent = moveQueue.length ? "Next move…" : "Ready to explore";
-            busy = false;
             if (pendingCase) {
+                busy = false;
                 const nextCase = pendingCase;
                 const nextAlgorithmIndex = pendingAlgorithmIndex;
                 pendingCase = null;
                 loadCase(nextCase, nextAlgorithmIndex);
                 return;
             }
-            processQueue();
+            if (moveQueue.length > 0) {
+                const gap = Number(document.getElementById("turn-gap").value);
+                cubeStatus.textContent = `Next move in ${gap} ms`;
+                window.setTimeout(() => {
+                    busy = false;
+                    if (pendingCase) {
+                        const nextCase = pendingCase;
+                        const nextAlgorithmIndex = pendingAlgorithmIndex;
+                        pendingCase = null;
+                        loadCase(nextCase, nextAlgorithmIndex);
+                        return;
+                    }
+                    processQueue();
+                }, gap);
+                return;
+            }
+            cubeStatus.textContent = "Ready to explore";
+            busy = false;
         }, duration);
     }
 
@@ -661,7 +603,7 @@ R U R' U' M' U R U' r'
             pattern.textContent = caseItem.recognition;
             const algorithm = document.createElement("code");
             algorithm.className = "case-card-alg";
-            algorithm.textContent = caseItem.algorithm.replace(/'/g, "′");
+            algorithm.textContent = caseItem.solutions[0].moves.replace(/'/g, "′");
             card.append(meta, titleRow, pattern, algorithm);
             card.addEventListener("click", () => loadCase(caseItem));
             caseGrid.appendChild(card);
@@ -681,47 +623,6 @@ R U R' U' M' U R U' r'
         if (firstCase) loadCase(firstCase);
     }
 
-    const faceGuideGrid = document.getElementById("face-guide-grid");
-    for (const face of ["U", "D", "L", "R", "F", "B"]) {
-        const card = document.createElement("article");
-        card.className = "face-guide-card";
-
-        const demo = document.createElement("button");
-        demo.className = "face-demo";
-        demo.type = "button";
-        demo.setAttribute("aria-label", `Animate ${face}: ${faceNames[face].position.toLowerCase()} clockwise`);
-
-        const stage = document.createElement("span");
-        stage.className = "face-cube-stage";
-        stage.setAttribute("aria-hidden", "true");
-        const miniCube = document.createElement("span");
-        miniCube.className = "mini-cube";
-        miniCube.dataset.face = face;
-        for (const stickerFace of Object.keys(normals)) {
-            const sticker = document.createElement("i");
-            sticker.className = `mini-face mini-face-${stickerFace}`;
-            miniCube.appendChild(sticker);
-        }
-        stage.appendChild(miniCube);
-        demo.appendChild(stage);
-
-        const copy = document.createElement("span");
-        copy.className = "face-guide-copy";
-        copy.innerHTML = `<span class="face-guide-name"><code>${face}</code> ${faceNames[face].name}</span><span class="face-guide-hint">${faceNames[face].position}</span><span class="face-guide-hint">Tap to turn clockwise</span>`;
-        demo.appendChild(copy);
-        demo.addEventListener("click", () => enqueue(face));
-        card.appendChild(demo);
-
-        const reverse = document.createElement("button");
-        reverse.className = "face-reverse";
-        reverse.type = "button";
-        reverse.textContent = `${face}′ · Turn counterclockwise`;
-        reverse.setAttribute("aria-label", `Animate ${face} prime: ${faceNames[face].position.toLowerCase()} counterclockwise`);
-        reverse.addEventListener("click", () => enqueue(`${face}'`));
-        card.appendChild(reverse);
-        faceGuideGrid.appendChild(card);
-    }
-
     document.querySelectorAll(".case-tab").forEach(tab => {
         tab.addEventListener("click", () => setCategory(tab.dataset.category));
     });
@@ -730,6 +631,16 @@ R U R' U' M' U R U' r'
         if (selectedCase && Number.isInteger(solutionIndex) && selectedCase.solutions[solutionIndex]) {
             loadCase(selectedCase, solutionIndex);
         }
+    });
+    document.getElementById("apply-custom-algorithm").addEventListener("click", applyCustomAlgorithm);
+    document.getElementById("custom-algorithm-input").addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            applyCustomAlgorithm();
+        }
+    });
+    document.getElementById("turn-gap").addEventListener("input", event => {
+        document.getElementById("turn-gap-value").textContent = `${event.currentTarget.value} ms`;
     });
     document.getElementById("previous-case").addEventListener("click", () => navigateCase(-1));
     document.getElementById("next-case").addEventListener("click", () => navigateCase(1));
@@ -744,7 +655,7 @@ R U R' U' M' U R U' r'
 
     makeCube();
     renderCaseGrid();
-    loadCase(cases.find(caseItem => caseItem.id === "pll-t"));
+    loadCase(cases.find(caseItem => caseItem.id === "pll-aa"));
     window.addEventListener("resize", () => {
         if (!busy && moveQueue.length === 0) cubies.forEach(drawCubie);
     });

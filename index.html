@@ -50,12 +50,27 @@
                         <div class="algorithm-choice-row">
                             <label for="algorithm-choice">Solution</label>
                             <select id="algorithm-choice" aria-label="Choose an algorithm solution"></select>
-                            <a id="algorithm-source" href="https://speedcubedb.com/a/3x3" target="_blank" rel="noopener noreferrer">SpeedCubeDB ↗</a>
+                            <a id="algorithm-source" href="https://jperm.net/algs/pll" target="_blank" rel="noopener noreferrer">J Perm ↗</a>
                         </div>
-                        <span class="algorithm-recommendation-note">Easiest uses the lowest STM; popularity is based on SpeedCubeDB community votes.</span>
+                        <span class="algorithm-recommendation-note">J Perm's listed algorithms appear in order; the first is the default. Try your own below.</span>
                         <span class="algorithm-label" id="algorithm-label">Tap a move to animate it on the cube</span>
                         <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Case solution algorithm"></div>
+                        <div class="custom-algorithm">
+                            <label class="custom-algorithm-label" for="custom-algorithm-input">Your algorithm</label>
+                            <div class="custom-algorithm-row">
+                                <input id="custom-algorithm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="R U R' U'" aria-describedby="custom-algorithm-status">
+                                <button class="button secondary" id="apply-custom-algorithm" type="button">Use custom</button>
+                            </div>
+                            <span class="custom-algorithm-status" id="custom-algorithm-status" role="status" aria-live="polite">Enter moves such as R, R', R2, r, M, or x.</span>
+                        </div>
                     </div>
+                </div>
+                <div class="playback-gap-control">
+                    <label class="playback-gap-label" for="turn-gap">
+                        <span>Pause between turns</span>
+                        <output id="turn-gap-value" for="turn-gap">250 ms</output>
+                    </label>
+                    <input id="turn-gap" type="range" min="50" max="500" step="50" value="250">
                 </div>
                 <div class="lesson-controls">
                     <button class="button secondary" id="reset-cube" type="button">↻ Reload case</button>
@@ -120,14 +135,6 @@
             <div class="case-grid" id="case-grid" aria-label="Algorithm cases"></div>
         </section>
 
-        <section class="move-guide" aria-labelledby="move-guide-title">
-            <div class="section-heading">
-                <div><p class="eyebrow">Move notation</p><h2 id="move-guide-title">Read the letters.</h2></div>
-                <p>Uppercase turns one face; lowercase turns two layers. M/E/S turn slices, while x/y/z rotate the whole cube.</p>
-            </div>
-            <div class="face-guide-grid" id="face-guide-grid"></div>
-            <p class="notation-note"><strong>Clockwise</strong> means as if looking straight at that face. A prime (′) reverses it; 2 means a half turn.</p>
-        </section>
     </main>
     <footer>Made for curious minds &amp; mixed-up cubes.</footer>
 
