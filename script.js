@@ -12,47 +12,49 @@
         R: [1, 0, 0], L: [-1, 0, 0],
         F: [0, 0, 1], B: [0, 0, -1]
     };
+    const faceNames = {
+        U: { name: "Up", position: "Top face" },
+        D: { name: "Down", position: "Bottom face" },
+        L: { name: "Left", position: "Left side" },
+        R: { name: "Right", position: "Right side" },
+        F: { name: "Front", position: "Facing you" },
+        B: { name: "Back", position: "Facing away" }
+    };
     const lessons = [
         {
             short: "The white cross", kicker: "Start with the edges", title: "Make a white cross",
             description: "Find the four white edge pieces and bring them around the white center. Match the other color on each edge with its center too—white on top, colors lined up on the sides.",
             tip: "The center pieces never move relative to one another. They tell you where every color belongs.",
-            label: "A handy move", algorithm: "F R U R′ U′ F′",
             demo: "F R U R' U' F'"
         },
         {
             short: "White corners", kicker: "Finish the first layer", title: "Slot in the corners",
             description: "Find a white corner in the bottom layer. Turn the bottom until it sits directly below its matching home, then repeat the corner move until it clicks into place.",
             tip: "Keep white on top. If a corner is stuck in the wrong spot, use the same move to bring it back down first.",
-            label: "Repeat until it fits", algorithm: "R U R′ U′",
             demo: "R U R' U'"
         },
         {
             short: "Middle layer", kicker: "Build the second layer", title: "Fill the middle edges",
             description: "Look on the bottom for an edge with no yellow. Match its front color to the center, then use the left or right sequence to insert it.",
             tip: "If all the useful edges are already in the middle but misplaced, use an insertion sequence to pop one out.",
-            label: "Insert to the right", algorithm: "U R U′ R′ U′ F′ U F",
             demo: "U R U' R' U' F' U F"
         },
         {
             short: "Yellow cross", kicker: "Turn the cube over", title: "Make a yellow cross",
             description: "With yellow on top, use the sequence to move from a dot to an L, then a line, then a cross. You may need to do it more than once.",
             tip: "For the L, hold its arms at the back and left. For the line, hold it horizontally.",
-            label: "Repeat as needed", algorithm: "F R U R′ U′ F′",
             demo: "F R U R' U' F'"
         },
         {
             short: "Yellow corners", kicker: "Orient the last layer", title: "Point yellow corners up",
             description: "Keep yellow on top. Repeat the sequence until the front-right top corner shows yellow on top. Turn only the top layer to bring the next unsolved corner there.",
             tip: "The cube may look scrambled halfway through—keep the same front face and finish the full sequence.",
-            label: "Corner-orienting sequence", algorithm: "R U R′ U R U2 R′",
             demo: "R U R' U R U2 R'"
         },
         {
             short: "Last layer", kicker: "One final loop", title: "Line up the last pieces",
             description: "Turn the top layer to place matching corners, then cycle the remaining edges. Repeat the sequence and use a top-layer turn between tries until every side matches.",
             tip: "You’ve got this: keep yellow on top and don’t rotate the whole cube during the sequence.",
-            label: "Cycle the corners", algorithm: "U R U′ L′ U R′ U′ L",
             demo: "U R U' L' U R' U' L"
         }
     ];
@@ -121,6 +123,23 @@
         const direction = token.includes("'") ? -1 : 1;
         const turns = token.includes("2") ? 2 : 1;
         return { face, axis: info.axis, sign: info.sign, quarterTurns: -info.sign * direction * turns };
+    }
+
+    function renderAlgorithm(sequence) {
+        const container = document.getElementById("algorithm-code");
+        container.replaceChildren();
+        for (const token of sequence.trim().split(/\s+/).filter(Boolean)) {
+            const move = parseMove(token);
+            if (!move) continue;
+            const button = document.createElement("button");
+            button.className = "algorithm-move";
+            button.type = "button";
+            button.textContent = token.replace("'", "′");
+            const direction = token.includes("2") ? "halfway around" : token.includes("'") ? "counterclockwise" : "clockwise";
+            button.setAttribute("aria-label", `Animate ${button.textContent}: turn the ${faceNames[move.face].name} face ${direction}`);
+            button.addEventListener("click", () => enqueue(token));
+            container.appendChild(button);
+        }
     }
 
     function enqueue(sequence) {
@@ -200,8 +219,8 @@
         document.getElementById("lesson-title").textContent = lesson.title;
         document.getElementById("lesson-description").textContent = lesson.description;
         document.getElementById("lesson-tip").textContent = lesson.tip;
-        document.getElementById("algorithm-label").textContent = lesson.label;
-        document.getElementById("algorithm-code").textContent = lesson.algorithm;
+        document.getElementById("algorithm-label").textContent = "Tap each move to animate it on the cube";
+        renderAlgorithm(lesson.demo);
         document.getElementById("previous-step").disabled = currentLesson === 0;
         document.getElementById("next-step").innerHTML = currentLesson === lessons.length - 1
             ? 'Start again <span class="arrow" aria-hidden="true">↻</span>'
@@ -225,6 +244,47 @@
         });
         stepGrid.appendChild(button);
     });
+
+    const faceGuideGrid = document.getElementById("face-guide-grid");
+    for (const face of ["U", "D", "L", "R", "F", "B"]) {
+        const card = document.createElement("article");
+        card.className = "face-guide-card";
+
+        const demo = document.createElement("button");
+        demo.className = "face-demo";
+        demo.type = "button";
+        demo.setAttribute("aria-label", `Animate ${face}: ${faceNames[face].position.toLowerCase()} clockwise`);
+
+        const stage = document.createElement("span");
+        stage.className = "face-cube-stage";
+        stage.setAttribute("aria-hidden", "true");
+        const miniCube = document.createElement("span");
+        miniCube.className = "mini-cube";
+        miniCube.dataset.face = face;
+        for (const stickerFace of Object.keys(normals)) {
+            const sticker = document.createElement("i");
+            sticker.className = `mini-face mini-face-${stickerFace}`;
+            miniCube.appendChild(sticker);
+        }
+        stage.appendChild(miniCube);
+        demo.appendChild(stage);
+
+        const copy = document.createElement("span");
+        copy.className = "face-guide-copy";
+        copy.innerHTML = `<span class="face-guide-name"><code>${face}</code> ${faceNames[face].name}</span><span class="face-guide-hint">${faceNames[face].position}</span><span class="face-guide-hint">Tap to turn clockwise</span>`;
+        demo.appendChild(copy);
+        demo.addEventListener("click", () => enqueue(face));
+        card.appendChild(demo);
+
+        const reverse = document.createElement("button");
+        reverse.className = "face-reverse";
+        reverse.type = "button";
+        reverse.textContent = `${face}′ · Turn counterclockwise`;
+        reverse.setAttribute("aria-label", `Animate ${face} prime: ${faceNames[face].position.toLowerCase()} counterclockwise`);
+        reverse.addEventListener("click", () => enqueue(`${face}'`));
+        card.appendChild(reverse);
+        faceGuideGrid.appendChild(card);
+    }
 
     document.getElementById("previous-step").addEventListener("click", () => renderLesson(currentLesson - 1));
     document.getElementById("next-step").addEventListener("click", () => {
