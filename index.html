@@ -3,9 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cubing</title>
+    <meta name="theme-color" content="#111313">
+    <meta name="description" content="Learn to solve a Rubik's Cube with a friendly, interactive 3D beginner guide.">
+    <title>Cube Club — Learn to solve</title>
+        <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    Hello
+    <header class="site-header">
+        <a class="brand" href="#" aria-label="Cube Club home">
+            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            cube club
+        </a>
+        <nav class="header-right" aria-label="Main navigation">
+            <a href="#method">The method</a>
+            <a class="level-pill" href="#lesson">Beginner · 6 steps</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="intro" id="lesson">
+            <p class="eyebrow">Your first solve starts here</p>
+            <h1>One cube.<br><span>Six simple steps.</span></h1>
+            <p class="intro-copy">A friendly, hands-on guide to solving the Rubik’s Cube. Learn the moves, see them in 3D, and take it one layer at a time.</p>
+        </section>
+
+        <section class="workspace" aria-label="Interactive cube lesson">
+            <div class="lesson-panel">
+                <div class="step-meta"><span id="step-count">STEP 01 / 06</span><strong id="step-short-name">The white cross</strong></div>
+                <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+                <div class="lesson-content" aria-live="polite">
+                    <p class="lesson-kicker" id="lesson-kicker">Start with the edges</p>
+                    <h2 id="lesson-title">Make a white cross</h2>
+                    <p class="lesson-description" id="lesson-description"></p>
+                    <div class="lesson-tip"><strong>Keep in mind</strong><span id="lesson-tip"></span></div>
+                    <div class="algorithm">
+                        <span class="algorithm-label" id="algorithm-label">Try this move</span>
+                        <code class="algorithm-code" id="algorithm-code"></code>
+                    </div>
+                </div>
+                <div class="lesson-controls">
+                    <button class="button secondary" id="previous-step" type="button"><span class="arrow" aria-hidden="true">←</span> Back</button>
+                    <button class="button" id="next-step" type="button">Next step <span class="arrow" aria-hidden="true">→</span></button>
+                </div>
+            </div>
+
+            <div class="cube-panel">
+                <div class="cube-panel-top">
+                    <span class="cube-title">Your practice cube</span>
+                    <span class="cube-status" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="cube-status">Ready to explore</span></span>
+                </div>
+                <div class="cube-stage" role="img" aria-label="Interactive three-dimensional Rubik's Cube">
+                    <div class="cube-orbit">
+                        <div class="cube-root" id="cube-root"></div>
+                    </div>
+                </div>
+                <div class="cube-panel-bottom">
+                    <div class="move-toolbar" aria-label="Turn a face">
+                        <span class="toolbar-label">Practice a turn · tap to animate</span>
+                        <button class="move-button" type="button" data-move="U" aria-label="Turn upper face clockwise">U</button>
+                        <button class="move-button" type="button" data-move="U'" aria-label="Turn upper face counterclockwise">U′</button>
+                        <button class="move-button" type="button" data-move="R" aria-label="Turn right face clockwise">R</button>
+                        <button class="move-button" type="button" data-move="R'" aria-label="Turn right face counterclockwise">R′</button>
+                        <button class="move-button" type="button" data-move="F" aria-label="Turn front face clockwise">F</button>
+                        <button class="move-button" type="button" data-move="F'" aria-label="Turn front face counterclockwise">F′</button>
+                        <span class="toolbar-divider" aria-hidden="true"></span>
+                        <button class="move-button" type="button" data-move="L" aria-label="Turn left face clockwise">L</button>
+                        <button class="move-button" type="button" data-move="D" aria-label="Turn bottom face clockwise">D</button>
+                        <button class="move-button" type="button" data-move="B" aria-label="Turn back face clockwise">B</button>
+                    </div>
+                    <div class="cube-actions">
+                        <div>
+                            <button class="action-link" id="scramble-cube" type="button">↻ Shuffle</button>
+                            <span class="toolbar-divider" aria-hidden="true"></span>
+                            <button class="action-link" id="reset-cube" type="button">Reset cube</button>
+                            <span class="toolbar-divider" aria-hidden="true"></span>
+                            <button class="action-link" id="play-algorithm" type="button">Lesson moves</button>
+                        </div>
+                        <button class="play-button" id="watch-solve" type="button">▶ &nbsp;Watch 3D solve</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="method" aria-labelledby="method-title">
+            <div class="section-heading">
+                <div><p class="eyebrow">The beginner method</p><h2 id="method-title">Six steps to solved.</h2></div>
+                <p>Pick a step to jump right in. The cube is yours to turn—try each move and see what changes.</p>
+            </div>
+            <div class="steps-grid" id="steps-grid" aria-label="Choose a lesson step"></div>
+        </section>
+
+        <p class="notation-note"><strong>Move notation:</strong> A letter means turn that face clockwise. An apostrophe (′) means counterclockwise. 2 means turn twice.</p>
+    </main>
+    <footer>Made for curious minds &amp; mixed-up cubes.</footer>
+
+    <script src="script.js" defer></script>
 </body>
 </html>
