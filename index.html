@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111313">
-    <meta name="description" content="Learn to solve a Rubik's Cube with a friendly, interactive 3D beginner guide.">
-    <title>Cube Club — Learn to solve</title>
+    <meta name="description" content="Explore 3x3 OLL and PLL algorithms with interactive 3D cube cases and move-by-move playback.">
+    <title>Cube Club — 3D Algorithm Trainer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,41 +15,41 @@
             cube club
         </a>
         <nav class="header-right" aria-label="Main navigation">
-            <a href="#method">The method</a>
-            <a class="level-pill" href="#lesson">Beginner · 6 steps</a>
+            <a href="#case-library">Algorithm cases</a>
+            <a class="level-pill" href="#algorithms">3×3 · OLL + PLL</a>
         </nav>
     </header>
 
     <main>
-        <section class="intro" id="lesson">
-            <p class="eyebrow">Your first solve starts here</p>
-            <h1>One cube.<br><span>Six simple steps.</span></h1>
-            <p class="intro-copy">A friendly, hands-on guide to solving the Rubik’s Cube. Learn the moves, see them in 3D, and take it one layer at a time.</p>
+        <section class="intro" id="algorithms">
+            <p class="eyebrow">3×3 algorithm trainer</p>
+            <h1>Know the case.<br><span>Learn the alg.</span></h1>
+            <p class="intro-copy">Choose an OLL or PLL case, study its cube pattern, then watch the algorithm solve it move by move.</p>
         </section>
 
-        <section class="workspace" aria-label="Interactive cube lesson">
-            <div class="lesson-panel">
-                <div class="step-meta"><span id="step-count">STEP 01 / 06</span><strong id="step-short-name">The white cross</strong></div>
+        <section class="workspace" aria-label="Algorithm case and 3D cube">
+            <div class="lesson-panel case-detail">
+                <div class="step-meta"><span id="case-category">PLL</span><strong id="case-index">CASE 01</strong></div>
                 <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
                 <div class="lesson-content" aria-live="polite">
-                    <p class="lesson-kicker" id="lesson-kicker">Start with the edges</p>
-                    <h2 id="lesson-title">Make a white cross</h2>
-                    <p class="lesson-description" id="lesson-description"></p>
-                    <div class="lesson-tip"><strong>Keep in mind</strong><span id="lesson-tip"></span></div>
+                    <p class="lesson-kicker" id="case-kicker">Permutation · corners and edges</p>
+                    <h2 id="case-title">T Perm</h2>
+                    <p class="lesson-description" id="case-description"></p>
+                    <div class="lesson-tip"><strong>Recognize the case</strong><span id="case-recognition"></span></div>
                     <div class="algorithm">
-                        <span class="algorithm-label" id="algorithm-label">Tap a move to see it on the cube</span>
-                        <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Lesson move sequence"></div>
+                        <span class="algorithm-label" id="algorithm-label">Tap a move to animate it on the cube</span>
+                        <div class="algorithm-code" id="algorithm-code" role="group" aria-label="Case solution algorithm"></div>
                     </div>
                 </div>
                 <div class="lesson-controls">
-                    <button class="button secondary" id="previous-step" type="button"><span class="arrow" aria-hidden="true">←</span> Back</button>
-                    <button class="button" id="next-step" type="button">Next step <span class="arrow" aria-hidden="true">→</span></button>
+                    <button class="button secondary" id="reset-cube" type="button">↻ Reload case</button>
+                    <button class="button" id="play-algorithm" type="button"><span aria-hidden="true">▶</span> Play solution</button>
                 </div>
             </div>
 
             <div class="cube-panel">
                 <div class="cube-panel-top">
-                    <span class="cube-title">Your practice cube</span>
+                    <span class="cube-title">Case on the cube</span>
                     <span class="cube-status" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="cube-status">Ready to explore</span></span>
                 </div>
                 <div class="cube-stage" role="img" aria-label="Interactive three-dimensional Rubik's Cube">
@@ -74,36 +74,38 @@
                         <button class="move-button" type="button" data-move="B'" aria-label="Turn back face counterclockwise">B′</button>
                     </div>
                     <div class="cube-actions">
-                        <div>
-                            <button class="action-link" id="scramble-cube" type="button">↻ Shuffle</button>
-                            <span class="toolbar-divider" aria-hidden="true"></span>
-                            <button class="action-link" id="reset-cube" type="button">Reset cube</button>
-                            <span class="toolbar-divider" aria-hidden="true"></span>
-                            <button class="action-link" id="play-algorithm" type="button">Lesson moves</button>
-                        </div>
-                        <button class="play-button" id="watch-solve" type="button">▶ &nbsp;Watch 3D solve</button>
+                        <span class="cube-hint">Tap a move or play the full algorithm</span>
                     </div>
                 </div>
             </div>
         </section>
 
+        <section class="case-library" id="case-library" aria-labelledby="case-library-title">
+            <div class="section-heading">
+                <div><p class="eyebrow">Algorithm library</p><h2 id="case-library-title">Choose a case.</h2></div>
+                <p>Start with a small set of common last-layer cases. Loading a case sets the cube to that pattern; play its alg to solve it.</p>
+            </div>
+            <div class="library-tools">
+                <div class="case-tabs" role="group" aria-label="Algorithm category">
+                    <button class="case-tab" type="button" data-category="OLL" aria-pressed="false">OLL <span>Orient</span></button>
+                    <button class="case-tab active" type="button" data-category="PLL" aria-pressed="true">PLL <span>Permute</span></button>
+                </div>
+                <label class="case-search">
+                    <span class="visually-hidden">Search cases</span>
+                    <input id="case-search" type="search" placeholder="Search cases or algs…" autocomplete="off">
+                </label>
+            </div>
+            <div class="case-grid" id="case-grid" aria-label="Algorithm cases"></div>
+        </section>
+
         <section class="move-guide" aria-labelledby="move-guide-title">
             <div class="section-heading">
-                <div><p class="eyebrow">Read the cube</p><h2 id="move-guide-title">Meet the six moves.</h2></div>
-                <p>Each letter names one face. Tap a 3D cube to watch that face turn; the prime button shows the reverse.</p>
+                <div><p class="eyebrow">Move notation</p><h2 id="move-guide-title">Read the letters.</h2></div>
+                <p>F is the front face, R the right, and B the back. A prime turns the same face the other way.</p>
             </div>
             <div class="face-guide-grid" id="face-guide-grid"></div>
+            <p class="notation-note"><strong>Clockwise</strong> means as if looking straight at that face. A prime (′) reverses it; 2 means a half turn.</p>
         </section>
-
-        <section id="method" aria-labelledby="method-title">
-            <div class="section-heading">
-                <div><p class="eyebrow">The beginner method</p><h2 id="method-title">Six steps to solved.</h2></div>
-                <p>Pick a step to jump right in. The cube is yours to turn—try each move and see what changes.</p>
-            </div>
-            <div class="steps-grid" id="steps-grid" aria-label="Choose a lesson step"></div>
-        </section>
-
-        <p class="notation-note"><strong>Move notation:</strong> Turn clockwise while looking straight at the named face. A prime (′) reverses the turn; 2 means turn halfway around.</p>
     </main>
     <footer>Made for curious minds &amp; mixed-up cubes.</footer>
 
