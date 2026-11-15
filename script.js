@@ -120,12 +120,120 @@
     let selectedCase = null;
     let selectedAlgorithmIndex = 0;
     let activeAlgorithmSequence = "";
+    let tutorialMoveTokens = [];
+    let tutorialMoveIndex = 0;
+    let tutorialHighlightSegments = [];
+    let activeTutorialHighlight = null;
     let pendingCase = null;
     let pendingAlgorithmIndex = 0;
     let cubies = [];
     let casePermutationArrows = [];
     const casePreviewStates = new Map();
     const algorithmLearningStorageKey = "cube-club.algorithm-learning-status.v1";
+    const beginnerSteps = [
+        {
+            id: "daisy",
+            title: "Make the white daisy",
+            shortTitle: "Daisy",
+            description: "Put the four white edge stickers around the yellow center. Their side colors do not need to match the side centers yet; that is the next step.",
+            tip: "A white sticker already facing up is a petal. Bring the other white stickers up too, even if the edge colors look out of line with the centers.",
+            reference: {
+                note: "The daisy is an optional warm-up; J Perm begins by building a white cross with its edge colors matched to the side centers.",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: beginner method"
+            }
+        },
+        {
+            id: "white-cross",
+            title: "Turn the daisy into a white cross",
+            shortTitle: "White cross",
+            description: "For each petal, turn the top until its side color matches the center on that side. Turn that matching face twice to send the white edge down beside the white center.",
+            tip: "Keep the white center on the bottom. Match all four side colors with their centers; the white cross is only finished when both sides match. For the next step, Righty (R U R' U') and Lefty (L' U' L U) are corner-insertion algorithms, not cross moves.",
+            reference: {
+                note: "J Perm emphasizes matching both colors on each white edge and explains how to handle flipped or misplaced white edges. The displayed example moves depend on the setup.",
+                moves: "F U' R U",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: white cross"
+            }
+        },
+        {
+            id: "white-corners",
+            title: "Solve the white corners",
+            shortTitle: "White corners",
+            description: "Insert the four white corners one at a time. A corner can be above its slot or in the bottom layer, and its white sticker can face up, down, or toward any side.",
+            tip: "Keep white on the bottom. Match the corner's two side colors to its slot, then use Righty (R U R' U') or Lefty (L' U' L U) to insert it. Play solution inserts one corner at a time; use the separate cube to preview that insertion.",
+            reference: {
+                note: "J Perm demonstrates right- and left-handed 4-move sequences for inserting first-layer corners. This practice cube shows those Righty and Lefty examples.",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: first layer"
+            }
+        },
+        {
+            id: "middle-layer",
+            title: "Solve the middle layer",
+            shortTitle: "Middle layer",
+            description: "Keep white on the bottom. Find a top-layer edge with neither white nor yellow and match its front sticker to the front center. The other sticker identifies its slot; an edge is solved only when both colors match their centers.",
+            tip: "For the right slot, turn U, do Righty, rotate the whole cube to face the right side, do Lefty, then rotate back. For the left slot, turn U', do Lefty, rotate to face the left side, do Righty, then rotate back. These rotations replace the usual front-face turns.",
+            reference: {
+                note: "Cube.Academy says to match a top-layer edge to its center, then use the other color to choose its correct slot. This guide uses cube rotations between Righty and Lefty so both edge colors finish matched to their centers.",
+                moves: "Right: U R U R' U' y L' U' L U y' · Left: U' L' U' L U y' R U R' U' y",
+                url: "https://www.cube.academy/how-to-solve-a-rubiks-cube",
+                label: "Cube.Academy: second layer"
+            }
+        },
+        {
+            id: "yellow-cross",
+            title: "Make the yellow cross",
+            shortTitle: "Yellow cross",
+            description: "With yellow on top, use this pattern to change the yellow edge stickers. You may need to do it more than once, turning the top to line up the pattern between tries.",
+            tip: "For a line, hold it horizontally. For an L, hold its yellow edges at the back and left. A dot usually needs multiple tries.",
+            reference: {
+                note: "J Perm's top-cross step uses the edge pattern to set up the sequence; repeat it as needed until all four top edges face up.",
+                moves: "F R U R' U' F'",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: top cross"
+            }
+        },
+        {
+            id: "yellow-edges",
+            title: "Match the yellow cross edges",
+            shortTitle: "Yellow edges",
+            description: "With the yellow cross made, line up each yellow edge's side sticker with its matching center. The cube path is calculated for this scramble.",
+            tip: "The yellow stickers stay on top; now match the four side colors to the centers before working on the corners.",
+            reference: {
+                note: "J Perm's next step matches the side colors of the top cross with their centers before solving the corners.",
+                moves: "R U R' U R U2 R' U",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: match cross colors"
+            }
+        },
+        {
+            id: "place-corners",
+            title: "Put the yellow corners in place",
+            shortTitle: "Place corners",
+            description: "Move each yellow corner into the slot with the same three colors. In this step, the yellow sticker does not need to face up yet.",
+            tip: "If one corner is already in its correct slot, hold it at the front-right-top and cycle the others. If none are correct, do the cycle once to create a correctly placed corner.",
+            reference: {
+                note: "J Perm places each top-layer corner by checking that all three of its colors match the surrounding centers.",
+                moves: "U R U' L' U R' U' L",
+                url: "https://jperm.net/3x3",
+                label: "J Perm: match corners"
+            }
+        },
+        {
+            id: "yellow-corner-orientation",
+            title: "Orient the yellow corners to finish",
+            shortTitle: "Orient corners",
+            description: "Turn the cube over so white is on top and yellow is on the bottom. Bring an unsolved yellow corner to the bottom-front-right position.",
+            tip: "Repeat Righty (R U R' U') until that corner's yellow sticker faces down. Turn only the bottom layer to bring the next unsolved corner to the bottom-front-right, then repeat. Finish each Righty before turning the bottom layer.",
+            reference: {
+                note: "Cube.Academy teaches this final step with white on top, yellow on the bottom, repeated Righty algorithms, and bottom-layer turns between corners.",
+                moves: "Righty: R U R' U' · Turn bottom to the next corner",
+                url: "https://www.cube.academy/how-to-solve-a-rubiks-cube",
+                label: "Cube.Academy: finish cube"
+            }
+        }
+    ];
     const algorithmLearningStates = [
         { id: "not-seen", label: "Not seen / not learning", className: "not-seen" },
         { id: "learning", label: "Learning", className: "learning" },
@@ -150,6 +258,23 @@
     const viewRotation = { ...defaultViewRotation };
     let viewAlignment = { x: 0, y: 0, z: 0 };
     let isPlayingAlgorithm = false;
+    let isPlayingBeginnerStage = false;
+    let isPlayingTutorialPlayback = false;
+    let preserveCompletedTutorialMoves = false;
+    let isPlayingCornerPractice = false;
+    let cornerPracticeTimer = null;
+    let cornerPracticeInitialState = [];
+    let cornerPracticeCubies = [];
+    let cornerPracticeSequence = [];
+    let cornerPracticeDescription = "";
+    let cornerPracticeCanInteract = false;
+    const defaultCornerPracticeViewRotation = { x: -24, y: -34 };
+    const cornerPracticeViewRotation = { ...defaultCornerPracticeViewRotation };
+    let cornerPracticePointer = null;
+    let activeBeginnerStep = 0;
+    let tutorialMode = false;
+    let beginnerDaisyScramble = createBeginnerScramble();
+    let daisySearchTables = null;
     const unit = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--unit"));
 
     function createSolvedCubeState() {
@@ -186,10 +311,53 @@
         for (const [face, color] of Object.entries(cubie.stickers)) {
             const sticker = document.createElement("i");
             sticker.className = `sticker sticker-${face}`;
+            if (activeTutorialHighlight && activeTutorialHighlight.edgeId === cubie.id && activeTutorialHighlight.color === color) {
+                sticker.classList.add("tutorial-highlight-edge");
+            }
+            if (activeTutorialHighlight && activeTutorialHighlight.centerId === cubie.id) {
+                sticker.classList.add("tutorial-highlight-center");
+            }
             sticker.style.backgroundColor = color;
             sticker.setAttribute("aria-hidden", "true");
             cubie.element.appendChild(sticker);
         }
+    }
+
+    function cloneCubeState(state) {
+        return state.map(cubie => ({
+            id: cubie.id,
+            x: cubie.x,
+            y: cubie.y,
+            z: cubie.z,
+            stickers: { ...cubie.stickers }
+        }));
+    }
+
+    function renderCornerPracticeCube(state) {
+        const root = document.getElementById("corner-practice-root");
+        root.replaceChildren();
+        const spacing = 25;
+        state.forEach(cubie => {
+            const element = document.createElement("div");
+            element.className = "cubie";
+            cubie.element = element;
+            element.style.transform = `translate(-50%, -50%) translate3d(${cubie.x * spacing}px, ${-cubie.y * spacing}px, ${cubie.z * spacing}px)`;
+            Object.entries(cubie.stickers).forEach(([face, color]) => {
+                const sticker = document.createElement("i");
+                sticker.className = `sticker sticker-${face}`;
+                sticker.style.backgroundColor = color;
+                sticker.setAttribute("aria-hidden", "true");
+                element.appendChild(sticker);
+            });
+            root.appendChild(element);
+        });
+        updateCornerPracticeView();
+    }
+
+    function updateCornerPracticeView() {
+        const orbit = document.querySelector(".corner-practice-orbit");
+        orbit.style.transform =
+            `rotateX(${cornerPracticeViewRotation.x}deg) rotateY(${cornerPracticeViewRotation.y}deg)`;
     }
 
     function positionForFacelet(face, row, column) {
@@ -702,10 +870,92 @@
         processQueue();
     }
 
+    function getMoveDelay() {
+        if (!tutorialMode) return Number(document.getElementById("turn-gap").value);
+        if (!document.getElementById("tutorial-delay-enabled").checked) return 0;
+        return Number(document.getElementById("tutorial-move-delay").value);
+    }
+
+    function updateTutorialHighlights() {
+        let nextHighlight = null;
+        tutorialHighlightSegments.forEach(segment => {
+            if (tutorialMoveIndex >= segment.startIndex && tutorialMoveIndex <= segment.endIndex) {
+                nextHighlight = segment;
+            }
+        });
+        if (activeTutorialHighlight === nextHighlight) return;
+        activeTutorialHighlight = nextHighlight;
+        cubies.forEach(drawCubie);
+
+        const note = document.getElementById("tutorial-highlight-note");
+        note.hidden = !nextHighlight;
+        if (!nextHighlight) return;
+        const colorNames = {
+            [faces.R.color]: "red",
+            [faces.L.color]: "orange",
+            [faces.F.color]: "green",
+            [faces.B.color]: "blue"
+        };
+        const colorName = colorNames[nextHighlight.color] || "matching";
+        note.textContent =
+            `Match the ${colorName} sticker on this white edge with the ${colorName} center, then turn ${nextHighlight.sideFace} twice to move it into the white cross.`;
+    }
+
+    function updateTutorialMoveControls() {
+        const busyWithMoves = busy || moveQueue.length > 0;
+        document.getElementById("tutorial-move-back").disabled =
+            !tutorialMode || busyWithMoves || tutorialMoveIndex === 0;
+        document.getElementById("tutorial-move-next").disabled =
+            !tutorialMode || busyWithMoves || tutorialMoveIndex >= tutorialMoveTokens.length;
+        document.getElementById("tutorial-move-progress").textContent =
+            `${tutorialMoveIndex} / ${tutorialMoveTokens.length} moves`;
+    }
+
+    function stepTutorialMove(direction) {
+        if (!tutorialMode) return;
+        if (busy || moveQueue.length > 0) {
+            cubeStatus.textContent = "Wait for the current turns to finish.";
+            return;
+        }
+        let moveToken;
+        if (direction > 0) {
+            if (tutorialMoveIndex >= tutorialMoveTokens.length) {
+                cubeStatus.textContent = "There are no more moves in this step.";
+                return;
+            }
+            const token = tutorialMoveTokens[tutorialMoveIndex];
+            moveToken = token;
+            tutorialMoveIndex++;
+            isPlayingBeginnerStage = tutorialMoveIndex === tutorialMoveTokens.length;
+            isPlayingTutorialPlayback = false;
+            preserveCompletedTutorialMoves = isPlayingBeginnerStage;
+        } else {
+            if (tutorialMoveIndex === 0) {
+                cubeStatus.textContent = "There are no earlier moves in this step.";
+                return;
+            }
+            const token = tutorialMoveTokens[tutorialMoveIndex - 1];
+            moveToken = inverseAlgorithm(token)[0];
+            tutorialMoveIndex--;
+            isPlayingBeginnerStage = false;
+            isPlayingTutorialPlayback = false;
+            preserveCompletedTutorialMoves = false;
+        }
+        updateTutorialHighlights();
+        enqueue(moveToken);
+        updateTutorialMoveControls();
+    }
+
     function processQueue() {
         if (busy || moveQueue.length === 0) return;
         busy = true;
+        updateTutorialMoveControls();
         const token = moveQueue.shift();
+        if (tutorialMode && isPlayingTutorialPlayback && tutorialMoveIndex < tutorialMoveTokens.length) {
+            tutorialMoveIndex++;
+            updateTutorialHighlights();
+            updateTutorialMoveControls();
+        }
         const move = parseMove(token);
         const selected = getAffectedCubies(cubies, move);
         const layer = document.createElement("div");
@@ -740,8 +990,8 @@
                 return;
             }
             if (moveQueue.length > 0) {
-                const gap = Number(document.getElementById("turn-gap").value);
-                cubeStatus.textContent = `Next move in ${gap} ms`;
+                const gap = getMoveDelay();
+                cubeStatus.textContent = gap > 0 ? `Next move in ${gap} ms` : "Next move";
                 window.setTimeout(() => {
                     busy = false;
                     if (pendingCase) {
@@ -762,11 +1012,921 @@
             }
             isPlayingAlgorithm = false;
             busy = false;
+            if (isPlayingBeginnerStage) {
+                const preserveCompletedMoves =
+                    preserveCompletedTutorialMoves ||
+                    (isPlayingTutorialPlayback && tutorialMoveIndex === tutorialMoveTokens.length);
+                isPlayingBeginnerStage = false;
+                isPlayingTutorialPlayback = false;
+                preserveCompletedTutorialMoves = false;
+                loadBeginnerDemo(preserveCompletedMoves);
+            } else if (tutorialMode) {
+                updateTutorialMoveControls();
+                cubeStatus.textContent = `${tutorialMoveIndex} of ${tutorialMoveTokens.length} moves applied`;
+            }
         }, duration);
     }
 
     const caseGrid = document.getElementById("case-grid");
     const caseDialog = document.getElementById("case-dialog");
+
+    function createBeginnerScramble() {
+        const faceNames = ["U", "D", "L", "R", "F", "B"];
+        const suffixes = ["", "'", "2"];
+        const scramble = [];
+        while (scramble.length < 20) {
+            const previousFace = scramble.length > 0 ? scramble[scramble.length - 1][0] : "";
+            const availableFaces = faceNames.filter(face => face !== previousFace);
+            const face = availableFaces[Math.floor(Math.random() * availableFaces.length)];
+            const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+            scramble.push(`${face}${suffix}`);
+        }
+        return scramble;
+    }
+
+    const daisySearchMoves = ["U", "U'", "U2", "D", "D'", "D2", "L", "L'", "L2", "R", "R'", "R2", "F", "F'", "F2", "B", "B'", "B2"];
+
+    function buildDaisySearchTables() {
+        const edgePositions = [];
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                for (let z = -1; z <= 1; z++) {
+                    if ([x, y, z].filter(value => value !== 0).length === 2) edgePositions.push([x, y, z]);
+                }
+            }
+        }
+        const positionKey = position => position.join(",");
+        const positionIndices = new Map(edgePositions.map((position, index) => [positionKey(position), index]));
+        const orientationVectors = edgePositions.map(([x, y, z]) => {
+            const vectors = [];
+            if (x !== 0) vectors.push([x, 0, 0]);
+            if (y !== 0) vectors.push([0, y, 0]);
+            if (z !== 0) vectors.push([0, 0, z]);
+            return vectors;
+        });
+        const transitions = new Uint8Array(edgePositions.length * 2 * daisySearchMoves.length);
+
+        for (let positionIndex = 0; positionIndex < edgePositions.length; positionIndex++) {
+            for (let orientation = 0; orientation < 2; orientation++) {
+                const stateIndex = positionIndex * 2 + orientation;
+                daisySearchMoves.forEach((token, moveIndex) => {
+                    const move = parseMove(token);
+                    const position = edgePositions[positionIndex];
+                    const coordinateIndex = move.axis === "x" ? 0 : move.axis === "y" ? 1 : 2;
+                    if (!move.layers.includes(position[coordinateIndex])) {
+                        transitions[stateIndex * daisySearchMoves.length + moveIndex] = stateIndex;
+                        return;
+                    }
+                    const nextPosition = rotateVector(position, move.axis, move.quarterTurns);
+                    const nextPositionIndex = positionIndices.get(positionKey(nextPosition));
+                    const nextWhiteNormal = rotateVector(orientationVectors[positionIndex][orientation], move.axis, move.quarterTurns);
+                    const nextOrientation = orientationVectors[nextPositionIndex].findIndex(vector =>
+                        vector.every((value, index) => value === nextWhiteNormal[index])
+                    );
+                    transitions[stateIndex * daisySearchMoves.length + moveIndex] = nextPositionIndex * 2 + nextOrientation;
+                });
+            }
+        }
+
+        const stateCount = 1 << 20;
+        const parents = new Int32Array(stateCount);
+        parents.fill(-1);
+        const nextMoves = new Int8Array(stateCount);
+        nextMoves.fill(-1);
+        const queue = new Uint32Array(stateCount);
+        const inverseMoveIndices = daisySearchMoves.map(token => {
+            const inverse = token.includes("2") ? token : token.endsWith("'") ? token.slice(0, -1) : `${token}'`;
+            return daisySearchMoves.indexOf(inverse);
+        });
+        const goalStates = edgePositions
+            .map((position, index) => ({ position, index }))
+            .filter(({ position }) => position[1] === 1 && (position[0] !== 0 || position[2] !== 0))
+            .map(({ index }) => index * 2 + orientationVectors[index].findIndex(vector => vector[0] === 0 && vector[1] === 1 && vector[2] === 0));
+        let queueEnd = 0;
+
+        function addGoalPermutations(depth, usedMask, key) {
+            if (depth === 4) {
+                parents[key] = key;
+                queue[queueEnd++] = key;
+                return;
+            }
+            goalStates.forEach((goalState, index) => {
+                if (usedMask & (1 << index)) return;
+                addGoalPermutations(depth + 1, usedMask | (1 << index), key | (goalState << (depth * 5)));
+            });
+        }
+        addGoalPermutations(0, 0, 0);
+
+        let queueStart = 0;
+        while (queueStart < queueEnd) {
+            const key = queue[queueStart++];
+            const state0 = key & 31;
+            const state1 = (key >>> 5) & 31;
+            const state2 = (key >>> 10) & 31;
+            const state3 = (key >>> 15) & 31;
+            for (let moveIndex = 0; moveIndex < daisySearchMoves.length; moveIndex++) {
+                const nextKey =
+                    transitions[state0 * daisySearchMoves.length + moveIndex] |
+                    (transitions[state1 * daisySearchMoves.length + moveIndex] << 5) |
+                    (transitions[state2 * daisySearchMoves.length + moveIndex] << 10) |
+                    (transitions[state3 * daisySearchMoves.length + moveIndex] << 15);
+                if (parents[nextKey] !== -1) continue;
+                parents[nextKey] = key;
+                nextMoves[nextKey] = inverseMoveIndices[moveIndex];
+                queue[queueEnd++] = nextKey;
+            }
+        }
+        return { edgePositions, positionIndices, orientationVectors, parents, nextMoves };
+    }
+
+    function getDaisyEdgeStateIndex(cubie, tables) {
+        const positionIndex = tables.positionIndices.get(`${cubie.x},${cubie.y},${cubie.z}`);
+        const whiteFace = Object.keys(cubie.stickers).find(face => cubie.stickers[face] === faces.D.color);
+        if (positionIndex === undefined || !whiteFace) {
+            throw new Error("Could not locate a white edge while preparing the daisy demo.");
+        }
+        const orientation = tables.orientationVectors[positionIndex].findIndex(vector =>
+            vector.every((value, index) => value === normals[whiteFace][index])
+        );
+        if (orientation < 0) throw new Error("Could not determine a white edge's orientation.");
+        return positionIndex * 2 + orientation;
+    }
+
+    function getDaisySolution(state) {
+        const tables = daisySearchTables || (daisySearchTables = buildDaisySearchTables());
+        const whiteEdges = state.filter(cubie =>
+            Object.keys(cubie.stickers).length === 2 &&
+            Object.values(cubie.stickers).includes(faces.D.color)
+        );
+        if (whiteEdges.length !== 4) throw new Error(`Expected four white edges for the daisy demo, found ${whiteEdges.length}.`);
+        const edgeStates = whiteEdges.map(cubie => getDaisyEdgeStateIndex(cubie, tables));
+        let key = edgeStates[0] | (edgeStates[1] << 5) | (edgeStates[2] << 10) | (edgeStates[3] << 15);
+        if (tables.parents[key] === -1) throw new Error("Could not find a daisy solution for this cube state.");
+
+        const moves = [];
+        while (tables.parents[key] !== key) {
+            const moveIndex = tables.nextMoves[key];
+            if (moveIndex < 0) throw new Error("The daisy solution path is incomplete.");
+            moves.push(daisySearchMoves[moveIndex]);
+            key = tables.parents[key];
+        }
+        return moves.join(" ");
+    }
+
+    function getTopEdgeSideFace(cubie) {
+        if (cubie.y !== 1) return null;
+        if (cubie.x === 1) return "R";
+        if (cubie.x === -1) return "L";
+        if (cubie.z === 1) return "F";
+        if (cubie.z === -1) return "B";
+        return null;
+    }
+
+    function applyMoveToStateCopy(state, token) {
+        const move = parseMove(token);
+        if (!move) throw new Error(`Unsupported tutorial move ${token}.`);
+        getAffectedCubies(state, move).forEach(cubie => rotateCubie(cubie, move));
+    }
+
+    function getWhiteCrossDemoPlan(state) {
+        const whiteEdges = state.filter(cubie =>
+            Object.keys(cubie.stickers).length === 2 &&
+            Object.values(cubie.stickers).includes(faces.D.color)
+        );
+        if (whiteEdges.length !== 4) {
+            throw new Error(`Expected four white edges for the cross demo, found ${whiteEdges.length}.`);
+        }
+        if (!whiteEdges.every(edge =>
+            edge.y === 1 &&
+            Object.keys(edge.stickers).find(face => edge.stickers[face] === faces.D.color) === "U"
+        )) {
+            return { moves: getPatternSolution(state, "white-cross"), highlights: [] };
+        }
+
+        const working = cloneCubeState(state);
+        const edgeIds = whiteEdges.map(edge => edge.id);
+        const moves = [];
+        const highlights = [];
+        const rotations = [[], ["U"], ["U2"], ["U'"]];
+
+        edgeIds.forEach(edgeId => {
+            let matchedRotation = null;
+            let matchedSideFace = null;
+            for (const rotation of rotations) {
+                const candidate = cloneCubeState(working);
+                rotation.forEach(token => applyMoveToStateCopy(candidate, token));
+                const edge = candidate.find(cubie => cubie.id === edgeId);
+                const sideFace = getTopEdgeSideFace(edge);
+                if (sideFace && edge.stickers[sideFace] === faces[sideFace].color) {
+                    matchedRotation = rotation;
+                    matchedSideFace = sideFace;
+                    break;
+                }
+            }
+            if (matchedRotation === null || matchedSideFace === null) {
+                throw new Error(`Could not align white edge ${edgeId} with its center.`);
+            }
+
+            const startIndex = moves.length;
+            matchedRotation.forEach(token => {
+                moves.push(token);
+                applyMoveToStateCopy(working, token);
+            });
+            const edge = working.find(cubie => cubie.id === edgeId);
+            const sideFace = getTopEdgeSideFace(edge);
+            const center = working.find(cubie =>
+                Object.keys(cubie.stickers).length === 1 &&
+                cubie.stickers[sideFace] === faces[sideFace].color
+            );
+            if (!center) throw new Error(`Could not find the ${sideFace} center for white edge ${edgeId}.`);
+
+            moves.push(`${sideFace}2`);
+            applyMoveToStateCopy(working, `${sideFace}2`);
+            highlights.push({
+                startIndex,
+                endIndex: moves.length,
+                edgeId,
+                centerId: center.id,
+                color: edge.stickers[sideFace],
+                sideFace
+            });
+        });
+
+        const crossSolved = edgeIds.every(edgeId => {
+            const edge = working.find(cubie => cubie.id === edgeId);
+            const whiteFace = Object.keys(edge.stickers).find(face => edge.stickers[face] === faces.D.color);
+            const homePosition = [0, 0, 0];
+            Object.values(edge.stickers).forEach(color => {
+                const homeFace = Object.keys(faces).find(face => faces[face].color === color);
+                normals[homeFace].forEach((value, index) => { homePosition[index] += value; });
+            });
+            return whiteFace === "D" &&
+                edge.x === homePosition[0] &&
+                edge.y === homePosition[1] &&
+                edge.z === homePosition[2];
+        });
+        if (!crossSolved) throw new Error("The daisy-to-cross plan did not align all four white edges.");
+        return { moves: moves.join(" "), highlights };
+    }
+
+    const patternPlannerCache = new Map();
+    const rightCornerInsert = "R U R' U'";
+    const leftCornerInsert = "L' U' L U";
+    const rightMiddleInsert = `U ${rightCornerInsert} y ${leftCornerInsert} y'`;
+    const leftMiddleInsert = `U' ${leftCornerInsert} y' ${rightCornerInsert} y`;
+    const backRightMiddleInsert = `y2 ${rightMiddleInsert} y2`;
+    const backLeftMiddleInsert = `y2 ${leftMiddleInsert} y2`;
+    const yellowCrossAlgorithm = "F R U R' U' F'";
+    const cornerCycleAlgorithm = "U R U' L' U R' U' L";
+    const yellowEdgeAlgorithm = "R U R' U R U2 R' U";
+    const cornerTwistTwice = `${rightCornerInsert} ${rightCornerInsert}`;
+    const cornerTwistFourTimes = `${cornerTwistTwice} ${cornerTwistTwice}`;
+    // Six Righties restore the cube, so inverse pairs can be shown as forward Righties.
+    const cornerTwistInverseAliases = {
+        [inverseAlgorithm(cornerTwistTwice).join(" ")]: cornerTwistFourTimes,
+        [inverseAlgorithm(cornerTwistFourTimes).join(" ")]: cornerTwistTwice
+    };
+    const cornerCycleMacros = [
+        cornerCycleAlgorithm,
+        `U ${cornerCycleAlgorithm} U'`,
+        `U' ${cornerCycleAlgorithm} U`,
+        `U2 ${cornerCycleAlgorithm} U2`
+    ];
+    const cornerTwistMacros = ["D", "D'", "D2", cornerTwistTwice, cornerTwistFourTimes];
+    const tutorialPatternConfigs = {
+        "white-cross": { piece: "edge", color: "white", goal: "exact", macros: daisySearchMoves },
+        "white-corners": {
+            piece: "corner",
+            color: "white",
+            goal: "exact",
+            macros: [
+                "U", "U'", "U2",
+                rightCornerInsert,
+                leftCornerInsert,
+                "F U F' U'",
+                "F' U' F U",
+                "B U B' U'",
+                "B' U' B U"
+            ]
+        },
+        "middle-layer": {
+            piece: "edge",
+            color: "middle",
+            goal: "exact",
+            macros: [
+                "U", "U'", "U2",
+                rightMiddleInsert,
+                leftMiddleInsert,
+                backRightMiddleInsert,
+                backLeftMiddleInsert
+            ]
+        },
+        "yellow-cross": { piece: "edge", color: "yellow", goal: "oriented", macros: ["U", "U'", "U2", yellowCrossAlgorithm] },
+        "yellow-corner-orientation": {
+            piece: "corner",
+            color: "yellow",
+            goal: "exact",
+            frameRotation: "x2",
+            inverseMacroAliases: cornerTwistInverseAliases,
+            macros: cornerTwistMacros
+        },
+        "place-corners": { piece: "corner", color: "yellow", goal: "positioned", macros: cornerCycleMacros },
+        "yellow-edges": {
+            piece: "edge",
+            color: "yellow",
+            goal: "exact",
+            macros: ["U", "U'", "U2", yellowEdgeAlgorithm]
+        }
+    };
+
+    function getTutorialPieceSpecs(state, config) {
+        const white = faces.D.color;
+        const yellow = faces.U.color;
+        const faceForColor = new Map(Object.entries(faces).map(([face, definition]) => [definition.color, face]));
+        const pieceStickerCount = config.piece === "edge" ? 2 : 3;
+        const frameRotation = config.frameRotation ? parseMove(config.frameRotation) : null;
+        if (config.frameRotation && !frameRotation) throw new Error(`Unsupported planner frame rotation ${config.frameRotation}.`);
+        return state
+            .filter(cubie => {
+                if (Object.keys(cubie.stickers).length !== pieceStickerCount) return false;
+                const colors = Object.values(cubie.stickers);
+                if (config.color === "white") return colors.includes(white);
+                if (config.color === "yellow") return colors.includes(yellow);
+                return !colors.includes(white) && !colors.includes(yellow);
+            })
+            .sort((left, right) => left.id.localeCompare(right.id))
+            .map(cubie => {
+                const colors = Object.values(cubie.stickers);
+                const markerColor = config.color === "middle" ? colors.slice().sort()[0] : config.color === "white" ? white : yellow;
+                const homePosition = [0, 0, 0];
+                colors.forEach(color => {
+                    const homeFace = faceForColor.get(color);
+                    if (!homeFace) throw new Error(`Could not identify the home face for cubie color ${color}.`);
+                    normals[homeFace].forEach((value, index) => { homePosition[index] += value; });
+                });
+                const markerFace = faceForColor.get(markerColor);
+                const homeNormal = normals[markerFace];
+                return {
+                    id: cubie.id,
+                    markerColor,
+                    homePosition: frameRotation
+                        ? rotateVector(homePosition, frameRotation.axis, frameRotation.quarterTurns)
+                        : homePosition,
+                    homeNormal: frameRotation
+                        ? rotateVector(homeNormal, frameRotation.axis, frameRotation.quarterTurns)
+                        : homeNormal
+                };
+            });
+    }
+
+    function buildPatternPlanner(config, pieces) {
+        const positionDimensionCount = config.piece === "edge" ? 2 : 3;
+        const positions = [];
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                for (let z = -1; z <= 1; z++) {
+                    if ([x, y, z].filter(value => value !== 0).length === positionDimensionCount) positions.push([x, y, z]);
+                }
+            }
+        }
+        const positionKey = position => position.join(",");
+        const positionIndices = new Map(positions.map((position, index) => [positionKey(position), index]));
+        const orientationVectors = positions.map(position => {
+            const vectors = [];
+            if (position[0] !== 0) vectors.push([position[0], 0, 0]);
+            if (position[1] !== 0) vectors.push([0, position[1], 0]);
+            if (position[2] !== 0) vectors.push([0, 0, position[2]]);
+            return vectors;
+        });
+        const orientationCount = positionDimensionCount;
+        const actions = [];
+        const actionIndices = new Map();
+        const inverseMacroAliases = config.inverseMacroAliases || {};
+        config.macros.forEach(macro => {
+            const tokens = macro.split(/\s+/).filter(Boolean);
+            [tokens, inverseAlgorithm(tokens.join(" "))].forEach(action => {
+                const actionKey = action.join(" ");
+                const canonicalAction = (inverseMacroAliases[actionKey] || actionKey).split(/\s+/);
+                const canonicalKey = canonicalAction.join(" ");
+                if (actionIndices.has(canonicalKey)) return;
+                actionIndices.set(canonicalKey, actions.length);
+                actions.push(canonicalAction);
+            });
+        });
+        const inverseActionIndices = actions.map(action => {
+            const inverseKey = inverseAlgorithm(action.join(" ")).join(" ");
+            return actionIndices.get(inverseMacroAliases[inverseKey] || inverseKey);
+        });
+        const transitions = new Uint8Array(positions.length * orientationCount * actions.length);
+
+        for (let positionIndex = 0; positionIndex < positions.length; positionIndex++) {
+            for (let orientation = 0; orientation < orientationCount; orientation++) {
+                const stateIndex = positionIndex * orientationCount + orientation;
+                actions.forEach((action, actionIndex) => {
+                    let position = positions[positionIndex];
+                    let stickerNormal = orientationVectors[positionIndex][orientation];
+                    action.forEach(token => {
+                        const move = parseMove(token);
+                        const coordinateIndex = move.axis === "x" ? 0 : move.axis === "y" ? 1 : 2;
+                        if (!move.layers.includes(position[coordinateIndex])) return;
+                        position = rotateVector(position, move.axis, move.quarterTurns);
+                        stickerNormal = rotateVector(stickerNormal, move.axis, move.quarterTurns);
+                    });
+                    const nextPositionIndex = positionIndices.get(positionKey(position));
+                    const nextOrientation = orientationVectors[nextPositionIndex].findIndex(vector =>
+                        vector.every((value, index) => value === stickerNormal[index])
+                    );
+                    transitions[stateIndex * actions.length + actionIndex] = nextPositionIndex * orientationCount + nextOrientation;
+                });
+            }
+        }
+
+        const goalStates = pieces.map(piece => {
+            if (config.goal === "oriented" || config.goal === "positioned") return null;
+            const positionIndex = positionIndices.get(positionKey(piece.homePosition));
+            const orientation = orientationVectors[positionIndex].findIndex(vector =>
+                vector.every((value, index) => value === piece.homeNormal[index])
+            );
+            return positionIndex * orientationCount + orientation;
+        });
+        const orientedGoalStates = config.goal === "oriented"
+            ? positions
+                .map((position, index) => ({ position, index }))
+                .filter(({ position }) => position[1] === 1)
+                .map(({ index }) => index * orientationCount + orientationVectors[index].findIndex(vector => vector[0] === 0 && vector[1] === 1 && vector[2] === 0))
+            : null;
+        const goalOptionsByPiece = config.goal === "oriented"
+            ? pieces.map(() => orientedGoalStates)
+            : config.goal === "positioned"
+                ? pieces.map(piece => {
+                    const positionIndex = positionIndices.get(positionKey(piece.homePosition));
+                    return orientationVectors[positionIndex].map((_, orientation) =>
+                        positionIndex * orientationCount + orientation
+                    );
+                })
+                : null;
+        const stateCount = 1 << 20;
+        const parents = new Int32Array(stateCount);
+        parents.fill(-1);
+        const nextActions = new Int8Array(stateCount);
+        nextActions.fill(-1);
+        const queue = new Uint32Array(stateCount);
+        let queueEnd = 0;
+
+        function addGoalPermutations(depth, usedMask, key) {
+            if (depth === pieces.length) {
+                parents[key] = key;
+                queue[queueEnd++] = key;
+                return;
+            }
+            const options = goalOptionsByPiece ? goalOptionsByPiece[depth] : [goalStates[depth]];
+            options.forEach((goalState, index) => {
+                const goalOptionsAreUnique = config.goal === "oriented";
+                if (goalOptionsAreUnique && (usedMask & (1 << index))) return;
+                addGoalPermutations(
+                    depth + 1,
+                    goalOptionsAreUnique ? usedMask | (1 << index) : usedMask,
+                    key | (goalState << (depth * 5))
+                );
+            });
+        }
+        addGoalPermutations(0, 0, 0);
+
+        let queueStart = 0;
+        while (queueStart < queueEnd) {
+            const key = queue[queueStart++];
+            const states = [
+                key & 31,
+                (key >>> 5) & 31,
+                (key >>> 10) & 31,
+                (key >>> 15) & 31
+            ];
+            for (let actionIndex = 0; actionIndex < actions.length; actionIndex++) {
+                const nextKey = states.reduce((packedKey, state, pieceIndex) =>
+                    packedKey | (transitions[state * actions.length + actionIndex] << (pieceIndex * 5)), 0);
+                if (parents[nextKey] !== -1) continue;
+                parents[nextKey] = key;
+                nextActions[nextKey] = inverseActionIndices[actionIndex];
+                queue[queueEnd++] = nextKey;
+            }
+        }
+        return { positions, positionIndices, orientationVectors, orientationCount, actions, transitions, goalStates, parents, nextActions };
+    }
+
+    function getPatternStateIndices(state, pieces, tables, stepId) {
+        const faceForColor = new Map(Object.entries(faces).map(([face, definition]) => [definition.color, face]));
+        return pieces.map(piece => {
+            const cubie = state.find(item => item.id === piece.id);
+            const positionIndex = tables.positionIndices.get(`${cubie.x},${cubie.y},${cubie.z}`);
+            const markerFace = Object.keys(cubie.stickers).find(face => cubie.stickers[face] === piece.markerColor);
+            if (positionIndex === undefined || !markerFace || !faceForColor.has(piece.markerColor)) {
+                throw new Error(`Could not locate a piece while planning ${stepId}.`);
+            }
+            const orientation = tables.orientationVectors[positionIndex].findIndex(vector =>
+                vector.every((value, index) => value === normals[markerFace][index])
+            );
+            if (orientation < 0) throw new Error(`Could not determine a piece orientation while planning ${stepId}.`);
+            return positionIndex * tables.orientationCount + orientation;
+        });
+    }
+
+    function getPatternSolution(state, stepId) {
+        const config = tutorialPatternConfigs[stepId];
+        if (!config) throw new Error(`No beginner solving plan is configured for ${stepId}.`);
+        const workingState = config.frameRotation ? cloneCubeState(state) : state;
+        if (config.frameRotation) {
+            const frameRotation = parseMove(config.frameRotation);
+            if (!frameRotation || frameRotation.layers.length !== 3) {
+                throw new Error(`Planner frame rotation ${config.frameRotation} must rotate the whole cube.`);
+            }
+            workingState.forEach(cubie => rotateCubie(cubie, frameRotation));
+        }
+        const pieces = getTutorialPieceSpecs(workingState, config);
+        if (pieces.length !== 4) throw new Error(`Expected four pieces for ${stepId}, found ${pieces.length}.`);
+        let tables = patternPlannerCache.get(stepId);
+        if (!tables) {
+            tables = buildPatternPlanner(config, pieces);
+            patternPlannerCache.set(stepId, tables);
+        }
+
+        const stateIndices = getPatternStateIndices(workingState, pieces, tables, stepId);
+        let key = stateIndices.reduce((packedKey, stateIndex, pieceIndex) =>
+            packedKey | (stateIndex << (pieceIndex * 5)), 0);
+        if (tables.parents[key] === -1) throw new Error(`Could not find a solution for the ${stepId} pieces.`);
+
+        const moves = [];
+        while (tables.parents[key] !== key) {
+            const actionIndex = tables.nextActions[key];
+            if (actionIndex < 0) throw new Error(`The ${stepId} solution path is incomplete.`);
+            moves.push(...tables.actions[actionIndex]);
+            key = tables.parents[key];
+        }
+        return moves.join(" ");
+    }
+
+    function getNextWhiteCornerInsertion(state) {
+        const stepId = "white-corners";
+        const config = tutorialPatternConfigs[stepId];
+        const pieces = getTutorialPieceSpecs(state, config);
+        let tables = patternPlannerCache.get(stepId);
+        if (!tables) {
+            tables = buildPatternPlanner(config, pieces);
+            patternPlannerCache.set(stepId, tables);
+        }
+        const stateIndices = getPatternStateIndices(state, pieces, tables, stepId);
+        const solvedIndices = stateIndices
+            .map((stateIndex, index) => stateIndex === tables.goalStates[index] ? index : -1)
+            .filter(index => index >= 0);
+        if (solvedIndices.length === pieces.length) return null;
+
+        const targetIndex = stateIndices.findIndex((stateIndex, index) => stateIndex !== tables.goalStates[index]);
+        const allowedActions = tables.actions
+            .map((_, actionIndex) => actionIndex)
+            .filter(actionIndex => solvedIndices.every(pieceIndex =>
+                tables.transitions[tables.goalStates[pieceIndex] * tables.actions.length + actionIndex] === tables.goalStates[pieceIndex]
+            ));
+        const startKey = stateIndices.reduce((key, stateIndex, pieceIndex) =>
+            key | (stateIndex << (pieceIndex * 5)), 0);
+        const stateCount = 1 << 20;
+        const parents = new Int32Array(stateCount);
+        parents.fill(-1);
+        const nextActions = new Int8Array(stateCount);
+        nextActions.fill(-1);
+        const queue = new Uint32Array(stateCount);
+        let queueEnd = 1;
+        let queueStart = 0;
+        let goalKey = -1;
+        parents[startKey] = startKey;
+        queue[0] = startKey;
+
+        while (queueStart < queueEnd && goalKey === -1) {
+            const key = queue[queueStart++];
+            if (((key >>> (targetIndex * 5)) & 31) === tables.goalStates[targetIndex]) {
+                goalKey = key;
+                break;
+            }
+            for (const actionIndex of allowedActions) {
+                let nextKey = 0;
+                for (let pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+                    const pieceState = (key >>> (pieceIndex * 5)) & 31;
+                    const nextPieceState = tables.transitions[pieceState * tables.actions.length + actionIndex];
+                    nextKey |= nextPieceState << (pieceIndex * 5);
+                }
+                if (parents[nextKey] !== -1) continue;
+                parents[nextKey] = key;
+                nextActions[nextKey] = actionIndex;
+                queue[queueEnd++] = nextKey;
+            }
+        }
+        if (goalKey === -1) throw new Error(`Could not find a white-corner insertion for ${pieces[targetIndex].id}.`);
+
+        const actionPath = [];
+        for (let key = goalKey; key !== startKey; key = parents[key]) {
+            const actionIndex = nextActions[key];
+            if (actionIndex < 0) throw new Error("The white-corner insertion path is incomplete.");
+            actionPath.push(actionIndex);
+        }
+        actionPath.reverse();
+        return {
+            placedCount: solvedIndices.length,
+            cornerId: pieces[targetIndex].id,
+            piece: pieces[targetIndex],
+            moves: actionPath.flatMap(actionIndex => tables.actions[actionIndex]).join(" ")
+        };
+    }
+
+    function getBeginnerDemoAlgorithm(step) {
+        if (step.id === "daisy") return getDaisySolution(cubies);
+        if (step.id === "white-cross") return getWhiteCrossDemoPlan(cubies).moves;
+        if (step.id === "white-corners") {
+            const cornerPlan = getNextWhiteCornerInsertion(cubies);
+            return cornerPlan ? cornerPlan.moves : "";
+        }
+        const solution = getPatternSolution(cubies, step.id);
+        if (step.id !== "yellow-corner-orientation" || !solution) return solution;
+        return `x2 ${solution} x2`;
+    }
+
+    function renderBeginnerStepList() {
+        const container = document.getElementById("beginner-step-list");
+        container.replaceChildren();
+        beginnerSteps.forEach((step, index) => {
+            const button = document.createElement("button");
+            button.className = "step-card";
+            button.type = "button";
+            button.setAttribute("aria-current", index === activeBeginnerStep ? "step" : "false");
+
+            const top = document.createElement("span");
+            top.className = "step-card-top";
+            const number = document.createElement("span");
+            number.textContent = `STEP ${String(index + 1).padStart(2, "0")}`;
+            const stage = document.createElement("span");
+            stage.textContent = index < 2 ? "White layer" : index < 4 ? "First 2 layers" : "Last layer";
+            const title = document.createElement("strong");
+            title.textContent = step.shortTitle;
+            const summary = document.createElement("small");
+            summary.textContent = step.title;
+            top.append(number, stage);
+            button.append(top, title, summary);
+            button.addEventListener("click", () => selectBeginnerStep(index));
+            container.appendChild(button);
+        });
+    }
+
+    function selectBeginnerStep(index) {
+        if (tutorialMode && (busy || moveQueue.length > 0)) {
+            cubeStatus.textContent = "Wait for the current turns to finish.";
+            return;
+        }
+        if (!Number.isInteger(index) || index < 0 || index >= beginnerSteps.length) return;
+        if (index > activeBeginnerStep + 1) {
+            cubeStatus.textContent = "Complete one step at a time.";
+            return;
+        }
+        if (index > activeBeginnerStep && getBeginnerDemoAlgorithm(beginnerSteps[activeBeginnerStep])) {
+            cubeStatus.textContent = `Finish ${beginnerSteps[activeBeginnerStep].shortTitle} before moving on.`;
+            return;
+        }
+        activeBeginnerStep = index;
+        renderBeginnerStepList();
+        if (tutorialMode) loadBeginnerDemo();
+    }
+
+    function loadCornerPracticeDemo(plan) {
+        const practice = document.getElementById("corner-practice");
+        practice.hidden = activeBeginnerStep !== beginnerSteps.findIndex(step => step.id === "white-corners");
+        if (cornerPracticeTimer !== null) window.clearTimeout(cornerPracticeTimer);
+        cornerPracticeTimer = null;
+        isPlayingCornerPractice = false;
+        cornerPracticeCanInteract = Boolean(plan);
+        cornerPracticeSequence = plan ? plan.moves.split(/\s+/).filter(Boolean) : [];
+        cornerPracticeInitialState = cloneCubeState(cubies);
+        cornerPracticeCubies = cloneCubeState(cornerPracticeInitialState);
+        cornerPracticeViewRotation.x = defaultCornerPracticeViewRotation.x;
+        cornerPracticeViewRotation.y = defaultCornerPracticeViewRotation.y;
+        renderCornerPracticeCube(cornerPracticeCubies);
+
+        const title = document.getElementById("corner-practice-title");
+        const description = document.getElementById("corner-practice-description");
+        const moves = document.getElementById("corner-practice-moves");
+        const playButton = document.getElementById("corner-practice-play");
+        document.getElementById("corner-practice-status").textContent = "";
+        if (!plan) {
+            title.textContent = "All four corners are placed";
+            cornerPracticeDescription = "The separate cube shows the finished white corners. Your main tutorial cube is unchanged.";
+            description.textContent = cornerPracticeDescription;
+            moves.textContent = "";
+            playButton.textContent = "Corners complete";
+            updateCornerPracticeControls();
+            return;
+        }
+
+        const target = cubies.find(cubie => cubie.id === plan.cornerId);
+        const whiteStickerFace = Object.keys(target.stickers).find(face => target.stickers[face] === faces.D.color);
+        const faceNames = { U: "up", D: "down", L: "left", R: "right", F: "front", B: "back" };
+        const layer = target.y === 1 ? "top" : "bottom";
+        title.textContent = `${plan.placedCount} of 4 white corners placed`;
+        cornerPracticeDescription = `The next white corner is in the ${layer} layer with its white sticker facing ${faceNames[whiteStickerFace]}. Try moves on this separate cube or play the guided insertion; the main tutorial cube will not move.`;
+        description.textContent = cornerPracticeDescription;
+        moves.textContent = plan.moves.replace(/'/g, "′");
+        playButton.textContent = "▶ Play on guide cube";
+        updateCornerPracticeControls();
+    }
+
+    function updateCornerPracticeControls() {
+        const busyWithPracticeMove = isPlayingCornerPractice;
+        document.getElementById("corner-practice-play").disabled =
+            busyWithPracticeMove || !cornerPracticeCanInteract || cornerPracticeSequence.length === 0;
+        document.getElementById("corner-practice-reset").disabled = !cornerPracticeCanInteract;
+        document.querySelectorAll("[data-practice-move]").forEach(button => {
+            button.disabled = busyWithPracticeMove || !cornerPracticeCanInteract;
+        });
+    }
+
+    function animateCornerPracticeMove(move, onComplete) {
+        const selected = getAffectedCubies(cornerPracticeCubies, move);
+        if (selected.length === 0) throw new Error("A guide-cube move did not select any pieces.");
+        const layer = document.createElement("div");
+        layer.className = "turn-layer corner-practice-turn-layer";
+        const root = document.getElementById("corner-practice-root");
+        root.appendChild(layer);
+        selected.forEach(cubie => layer.appendChild(cubie.element));
+
+        const cssQuarterTurns = move.axis === "y" ? move.quarterTurns : -move.quarterTurns;
+        const axisName = move.axis.toUpperCase();
+        layer.style.transform = `rotate${axisName}(0deg)`;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                layer.style.transform = `rotate${axisName}(${cssQuarterTurns * 90}deg)`;
+            });
+        });
+        const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 30 : 650;
+        cornerPracticeTimer = window.setTimeout(() => {
+            selected.forEach(cubie => rotateCubie(cubie, move));
+            renderCornerPracticeCube(cornerPracticeCubies);
+            cornerPracticeTimer = null;
+            onComplete();
+        }, duration);
+    }
+
+    function resetCornerPracticeCube() {
+        if (!cornerPracticeCanInteract) return;
+        if (cornerPracticeTimer !== null) window.clearTimeout(cornerPracticeTimer);
+        cornerPracticeTimer = null;
+        isPlayingCornerPractice = false;
+        cornerPracticeCubies = cloneCubeState(cornerPracticeInitialState);
+        cornerPracticeViewRotation.x = defaultCornerPracticeViewRotation.x;
+        cornerPracticeViewRotation.y = defaultCornerPracticeViewRotation.y;
+        renderCornerPracticeCube(cornerPracticeCubies);
+        document.getElementById("corner-practice-description").textContent = cornerPracticeDescription;
+        document.getElementById("corner-practice-status").textContent = "Guide cube reset to this corner case.";
+        updateCornerPracticeControls();
+    }
+
+    function turnCornerPracticeCube(token) {
+        if (!cornerPracticeCanInteract || isPlayingCornerPractice) return;
+        const move = parseMove(token);
+        if (!move) throw new Error(`Unsupported guide-cube move ${token}.`);
+        isPlayingCornerPractice = true;
+        document.getElementById("corner-practice-status").textContent =
+            `Turning ${token.replace("'", "′")} on the guide cube.`;
+        updateCornerPracticeControls();
+        animateCornerPracticeMove(move, () => {
+            isPlayingCornerPractice = false;
+            document.getElementById("corner-practice-status").textContent =
+                `Turned ${token.replace("'", "′")} on the guide cube.`;
+            updateCornerPracticeControls();
+        });
+    }
+
+    function playCornerPracticeSolution() {
+        if (!cornerPracticeCanInteract || isPlayingCornerPractice || cornerPracticeSequence.length === 0) return;
+        cornerPracticeCubies = cloneCubeState(cornerPracticeInitialState);
+        renderCornerPracticeCube(cornerPracticeCubies);
+        isPlayingCornerPractice = true;
+        document.getElementById("corner-practice-status").textContent = "Playing the corner insertion on the guide cube.";
+        updateCornerPracticeControls();
+
+        const moves = cornerPracticeSequence.slice();
+        function playNextMove() {
+            cornerPracticeTimer = null;
+            if (!isPlayingCornerPractice) return;
+            if (moves.length === 0) {
+                isPlayingCornerPractice = false;
+                document.getElementById("corner-practice-play").textContent = "▶ Replay corner insertion";
+                document.getElementById("corner-practice-status").textContent =
+                    "Corner inserted on the guide cube. Replay resets it to the starting case.";
+                updateCornerPracticeControls();
+                return;
+            }
+            const token = moves.shift();
+            const move = parseMove(token);
+            if (!move) throw new Error(`Unsupported corner-practice move ${token}.`);
+            animateCornerPracticeMove(move, () => {
+                cornerPracticeTimer = window.setTimeout(playNextMove, getMoveDelay());
+            });
+        }
+        playNextMove();
+    }
+
+    function loadBeginnerDemo(preserveCompletedMoves = false) {
+        if (busy || moveQueue.length > 0) {
+            cubeStatus.textContent = "Wait for the current turns to finish.";
+            return;
+        }
+        const step = beginnerSteps[activeBeginnerStep];
+        const whiteCrossPlan = step.id === "white-cross" ? getWhiteCrossDemoPlan(cubies) : null;
+        const cornerPlan = step.id === "white-corners" ? getNextWhiteCornerInsertion(cubies) : null;
+        tutorialHighlightSegments = whiteCrossPlan ? whiteCrossPlan.highlights : [];
+        const nextSequence = whiteCrossPlan
+            ? whiteCrossPlan.moves
+            : step.id === "white-corners"
+                ? cornerPlan ? cornerPlan.moves : ""
+            : getBeginnerDemoAlgorithm(step);
+        const completedTokens = tutorialMoveTokens;
+        const completedIndex = tutorialMoveIndex;
+        if (preserveCompletedMoves && !nextSequence && completedTokens.length > 0 && completedIndex === completedTokens.length) {
+            tutorialMoveTokens = completedTokens;
+            tutorialMoveIndex = completedIndex;
+            activeAlgorithmSequence = completedTokens.join(" ");
+        } else {
+            activeAlgorithmSequence = nextSequence;
+            tutorialMoveTokens = activeAlgorithmSequence.trim().split(/\s+/).filter(Boolean);
+            tutorialMoveIndex = 0;
+        }
+        updateTutorialHighlights();
+        loadCornerPracticeDemo(cornerPlan);
+        renderCubeViews();
+
+        document.getElementById("tutorial-demo-step").textContent =
+            `STEP ${String(activeBeginnerStep + 1).padStart(2, "0")} / ${String(beginnerSteps.length).padStart(2, "0")}`;
+        document.getElementById("tutorial-demo-title").textContent = step.title;
+        document.getElementById("tutorial-demo-description").textContent = step.description;
+        document.getElementById("tutorial-demo-tip").textContent = step.tip;
+        const reference = step.reference;
+        document.getElementById("tutorial-reference-note").textContent = reference.note;
+        document.getElementById("tutorial-reference-moves").textContent = reference.moves || "";
+        document.getElementById("tutorial-reference-algorithm").hidden = !reference.moves;
+        const referenceLink = document.getElementById("tutorial-reference-link");
+        referenceLink.href = reference.url;
+        referenceLink.textContent = `${reference.label} ↗`;
+        document.getElementById("tutorial-demo-moves").textContent = tutorialMoveTokens.join(" ").replace(/'/g, "′");
+        document.getElementById("tutorial-demo-move-label").textContent = "Moves for this scramble";
+        document.getElementById("tutorial-scramble-notation").hidden = step.id !== "daisy";
+        document.getElementById("tutorial-scramble-moves").textContent = beginnerDaisyScramble.join(" ").replace(/'/g, "′");
+        document.getElementById("tutorial-previous").disabled = activeBeginnerStep === 0;
+        document.getElementById("tutorial-next").disabled = activeBeginnerStep === beginnerSteps.length - 1;
+        document.getElementById("tutorial-scramble").hidden = step.id !== "daisy";
+        updateTutorialMoveControls();
+        cubeStatus.textContent = nextSequence ? `${step.shortTitle} demo ready` : `${step.shortTitle} complete`;
+    }
+
+    function startBeginnerTutorial(newScramble) {
+        if (busy || moveQueue.length > 0) {
+            cubeStatus.textContent = "Wait for the current turns to finish.";
+            return;
+        }
+        if (newScramble) beginnerDaisyScramble = createBeginnerScramble();
+        activeBeginnerStep = 0;
+        moveQueue.length = 0;
+        pendingCase = null;
+        isPlayingAlgorithm = false;
+        isPlayingBeginnerStage = false;
+        isPlayingTutorialPlayback = false;
+        preserveCompletedTutorialMoves = false;
+        tutorialMoveTokens = [];
+        tutorialMoveIndex = 0;
+        tutorialHighlightSegments = [];
+        activeTutorialHighlight = null;
+        cubeRoot.replaceChildren();
+        makeCube();
+        beginnerDaisyScramble.forEach(applyMoveToState);
+        casePermutationArrows = [];
+        viewRotation.x = defaultViewRotation.x;
+        viewRotation.y = defaultViewRotation.y;
+        viewRotation.z = 0;
+        viewAlignment = { x: 0, y: 0, z: 0 };
+        updateCubeView();
+        renderCubeViews();
+        renderBeginnerStepList();
+        loadBeginnerDemo();
+    }
+
+    function openBeginnerDemo() {
+        tutorialMode = true;
+        document.querySelector(".workspace").classList.add("tutorial-mode");
+        document.getElementById("tutorial-cube-guide").hidden = false;
+        document.getElementById("case-dialog-title").textContent = "Beginner tutorial";
+        document.getElementById("cube-title").textContent = "Beginner practice cube";
+        document.getElementById("cube-workspace").setAttribute("aria-label", "Beginner tutorial and 3D cube");
+        caseDialog.setAttribute("aria-label", "Beginner tutorial and 3D cube");
+        caseDialog.showModal();
+        startBeginnerTutorial(true);
+    }
+
+    function scrambleBeginnerDaisyDemo() {
+        startBeginnerTutorial(true);
+    }
 
     function renderCaseGrid() {
         const query = document.getElementById("case-search").value.trim().toLowerCase();
@@ -856,11 +2016,104 @@
     document.getElementById("turn-gap").addEventListener("input", event => {
         document.getElementById("turn-gap-value").textContent = `${event.currentTarget.value} ms`;
     });
+    const tutorialDelayInput = document.getElementById("tutorial-move-delay");
+    const tutorialDelayEnabled = document.getElementById("tutorial-delay-enabled");
+    function updateTutorialDelayControl() {
+        tutorialDelayInput.disabled = !tutorialDelayEnabled.checked;
+        document.getElementById("tutorial-delay-value").textContent =
+            tutorialDelayEnabled.checked ? `${tutorialDelayInput.value} ms` : "Off";
+    }
+    tutorialDelayInput.addEventListener("input", updateTutorialDelayControl);
+    tutorialDelayEnabled.addEventListener("change", updateTutorialDelayControl);
+    updateTutorialDelayControl();
     document.getElementById("previous-case").addEventListener("click", () => navigateCase(-1));
     document.getElementById("next-case").addEventListener("click", () => navigateCase(1));
     document.getElementById("case-search").addEventListener("input", renderCaseGrid);
     document.getElementById("close-case-dialog").addEventListener("click", () => caseDialog.close());
-    document.querySelectorAll(".move-button").forEach(button => button.addEventListener("click", () => enqueue(button.dataset.move)));
+    document.getElementById("open-beginner-tutorial").addEventListener("click", openBeginnerDemo);
+    document.getElementById("tutorial-previous").addEventListener("click", () => selectBeginnerStep(activeBeginnerStep - 1));
+    document.getElementById("tutorial-next").addEventListener("click", () => selectBeginnerStep(activeBeginnerStep + 1));
+    document.getElementById("tutorial-play").addEventListener("click", () => {
+        const remainingMoves = tutorialMoveTokens.slice(tutorialMoveIndex);
+        if (remainingMoves.length === 0) {
+            cubeStatus.textContent = `${beginnerSteps[activeBeginnerStep].shortTitle} is already complete.`;
+            return;
+        }
+        isPlayingBeginnerStage = tutorialMode;
+        isPlayingTutorialPlayback = tutorialMode;
+        preserveCompletedTutorialMoves = false;
+        enqueue(remainingMoves.join(" "));
+    });
+    document.getElementById("tutorial-move-back").addEventListener("click", () => stepTutorialMove(-1));
+    document.getElementById("tutorial-move-next").addEventListener("click", () => stepTutorialMove(1));
+    document.getElementById("corner-practice-play").addEventListener("click", playCornerPracticeSolution);
+    document.getElementById("corner-practice-reset").addEventListener("click", resetCornerPracticeCube);
+    document.querySelectorAll("[data-practice-move]").forEach(button => {
+        button.addEventListener("click", () => turnCornerPracticeCube(button.dataset.practiceMove));
+    });
+    const cornerPracticeStage = document.getElementById("corner-practice-stage");
+    cornerPracticeStage.addEventListener("pointerdown", event => {
+        if (event.button !== 0 || cornerPracticePointer !== null || isPlayingCornerPractice) return;
+        cornerPracticePointer = {
+            id: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            viewX: cornerPracticeViewRotation.x,
+            viewY: cornerPracticeViewRotation.y
+        };
+        cornerPracticeStage.setPointerCapture(event.pointerId);
+        cornerPracticeStage.classList.add("is-dragging");
+    });
+    cornerPracticeStage.addEventListener("pointermove", event => {
+        if (!cornerPracticePointer || event.pointerId !== cornerPracticePointer.id) return;
+        cornerPracticeViewRotation.x =
+            cornerPracticePointer.viewX - (event.clientY - cornerPracticePointer.y) * 0.5;
+        cornerPracticeViewRotation.y =
+            cornerPracticePointer.viewY + (event.clientX - cornerPracticePointer.x) * 0.5;
+        updateCornerPracticeView();
+    });
+    function finishCornerPracticeDrag(event) {
+        if (!cornerPracticePointer || event.pointerId !== cornerPracticePointer.id) return;
+        cornerPracticePointer = null;
+        cornerPracticeStage.classList.remove("is-dragging");
+    }
+    cornerPracticeStage.addEventListener("pointerup", finishCornerPracticeDrag);
+    cornerPracticeStage.addEventListener("pointercancel", finishCornerPracticeDrag);
+    document.getElementById("tutorial-reset").addEventListener("click", () => startBeginnerTutorial(false));
+    document.getElementById("tutorial-scramble").addEventListener("click", scrambleBeginnerDaisyDemo);
+    caseDialog.addEventListener("close", () => {
+        if (!tutorialMode) return;
+        tutorialMode = false;
+        isPlayingBeginnerStage = false;
+        isPlayingTutorialPlayback = false;
+        preserveCompletedTutorialMoves = false;
+        tutorialHighlightSegments = [];
+        activeTutorialHighlight = null;
+        if (cornerPracticeTimer !== null) window.clearTimeout(cornerPracticeTimer);
+        cornerPracticeTimer = null;
+        isPlayingCornerPractice = false;
+        document.querySelector(".workspace").classList.remove("tutorial-mode");
+        document.getElementById("tutorial-cube-guide").hidden = true;
+        document.getElementById("case-dialog-title").textContent = "Case and cube";
+        document.getElementById("cube-title").textContent = "Case on the cube";
+        document.getElementById("cube-workspace").setAttribute("aria-label", "Algorithm case and 3D cube");
+        caseDialog.setAttribute("aria-label", "Algorithm case and 3D cube");
+        if (selectedCase && busy) {
+            moveQueue.length = 0;
+            pendingCase = selectedCase;
+            pendingAlgorithmIndex = selectedAlgorithmIndex;
+        } else if (selectedCase) {
+            loadCase(selectedCase, selectedAlgorithmIndex);
+        }
+    });
+    document.querySelectorAll(".move-button").forEach(button => button.addEventListener("click", () => {
+        if (tutorialMode) {
+            isPlayingBeginnerStage = true;
+            isPlayingTutorialPlayback = false;
+            preserveCompletedTutorialMoves = false;
+        }
+        enqueue(button.dataset.move);
+    }));
     function updateCubeView() {
         cubeOrbit.style.transform = `rotateX(${viewRotation.x}deg) rotateY(${viewRotation.y}deg) rotateZ(${viewRotation.z || 0}deg) rotateX(${viewAlignment.x}deg) rotateY(${viewAlignment.y}deg) rotateZ(${viewAlignment.z}deg)`;
     }
@@ -918,6 +2171,7 @@
     });
 
     makeCube();
+    renderBeginnerStepList();
     renderCaseGrid();
     loadCase(cases.find(caseItem => caseItem.id === "pll-aa"));
     window.addEventListener("resize", () => {

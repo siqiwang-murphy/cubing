@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111313">
-    <meta name="description" content="Explore 3x3 OLL and PLL algorithms with interactive 3D cube cases and move-by-move playback.">
+    <meta name="description" content="Learn to solve a 3×3 with an interactive beginner tutorial, then explore OLL and PLL algorithms with 3D cases.">
     <title>Cube Club — 3D Algorithm Trainer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,6 +16,7 @@
         </a>
         <nav class="header-right" aria-label="Main navigation">
             <a href="#case-library">Algorithm cases</a>
+            <button class="header-link" id="open-beginner-tutorial" type="button">Beginner tutorial</button>
             <a class="level-pill" href="#algorithms">3×3 · OLL + PLL</a>
         </nav>
     </header>
@@ -24,15 +25,15 @@
         <section class="intro" id="algorithms">
             <p class="eyebrow">3×3 algorithm trainer</p>
             <h1>Know the case.<br><span>Learn the alg.</span></h1>
-            <p class="intro-copy">Choose an OLL or PLL case to open its algorithm and 3D cube, then play the solution move by move.</p>
+            <p class="intro-copy">New to cubing? Build a solved cube one layer at a time with a guided, interactive 3D tutorial.</p>
         </section>
 
         <dialog class="case-dialog" id="case-dialog" aria-label="Algorithm case and 3D cube">
             <div class="case-dialog-header">
-                <span>Case and cube</span>
+                <span id="case-dialog-title">Case and cube</span>
                 <button class="button secondary" id="close-case-dialog" type="button">Close</button>
             </div>
-            <section class="workspace" aria-label="Algorithm case and 3D cube">
+            <section class="workspace" id="cube-workspace" aria-label="Algorithm case and 3D cube">
             <div class="lesson-panel case-detail">
                 <div class="step-meta">
                     <span id="case-category">PLL</span>
@@ -87,7 +88,7 @@
 
             <div class="cube-panel">
                 <div class="cube-panel-top">
-                    <span class="cube-title">Case on the cube</span>
+                    <span class="cube-title" id="cube-title">Case on the cube</span>
                     <span class="cube-status" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="cube-status">Ready to explore</span></span>
                 </div>
                 <div class="cube-stage" role="img" aria-label="Interactive three-dimensional Rubik's Cube. Drag to rotate the view.">
@@ -95,6 +96,87 @@
                         <div class="cube-root" id="cube-root"></div>
                     </div>
                 </div>
+                <section class="tutorial-cube-guide" id="tutorial-cube-guide" aria-labelledby="tutorial-demo-title" aria-live="polite" hidden>
+                    <div class="tutorial-demo-heading">
+                        <p class="lesson-kicker" id="tutorial-demo-step">STEP 01 / 08</p>
+                        <h2 id="tutorial-demo-title"></h2>
+                    </div>
+                    <p class="tutorial-demo-description" id="tutorial-demo-description"></p>
+                    <div class="lesson-tip"><strong>What to do</strong><span id="tutorial-demo-tip"></span></div>
+                    <p class="tutorial-highlight-note" id="tutorial-highlight-note" role="status" aria-live="polite" hidden></p>
+                    <section class="corner-practice" id="corner-practice" aria-labelledby="corner-practice-title" hidden>
+                        <div class="corner-practice-copy">
+                            <p class="lesson-kicker">Separate 3D practice cube</p>
+                            <h3 id="corner-practice-title">Insert one white corner</h3>
+                            <p id="corner-practice-description"></p>
+                            <p class="corner-orientation-note">Keep white on the bottom and place the corner above its matching slot. Use Righty for a right-side insertion or Lefty for a left-side insertion.</p>
+                            <div class="tutorial-demo-algorithm"><span>Righty</span><code>R U R′ U′</code></div>
+                            <div class="tutorial-demo-algorithm"><span>Lefty</span><code>L′ U′ L U</code></div>
+                            <div class="tutorial-demo-algorithm"><span>Moves for this case</span><code id="corner-practice-moves"></code></div>
+                            <p class="corner-practice-interaction-hint">Drag the cube to rotate its view. Use the face buttons to try moves; reset returns to this corner case.</p>
+                            <div class="corner-practice-actions">
+                                <button class="button secondary corner-practice-play" id="corner-practice-play" type="button">▶ Play on guide cube</button>
+                                <button class="button secondary" id="corner-practice-reset" type="button">↻ Reset guide cube</button>
+                            </div>
+                            <p class="corner-practice-status" id="corner-practice-status" role="status" aria-live="polite"></p>
+                            <div class="corner-practice-move-controls" role="group" aria-label="Turn the guide cube">
+                                <span>Try a face turn</span>
+                                <div class="corner-practice-move-grid">
+                                    <button class="button secondary" type="button" data-practice-move="U" aria-label="Turn guide cube upper face clockwise">U</button>
+                                    <button class="button secondary" type="button" data-practice-move="U'" aria-label="Turn guide cube upper face counterclockwise">U′</button>
+                                    <button class="button secondary" type="button" data-practice-move="D" aria-label="Turn guide cube bottom face clockwise">D</button>
+                                    <button class="button secondary" type="button" data-practice-move="D'" aria-label="Turn guide cube bottom face counterclockwise">D′</button>
+                                    <button class="button secondary" type="button" data-practice-move="L" aria-label="Turn guide cube left face clockwise">L</button>
+                                    <button class="button secondary" type="button" data-practice-move="L'" aria-label="Turn guide cube left face counterclockwise">L′</button>
+                                    <button class="button secondary" type="button" data-practice-move="R" aria-label="Turn guide cube right face clockwise">R</button>
+                                    <button class="button secondary" type="button" data-practice-move="R'" aria-label="Turn guide cube right face counterclockwise">R′</button>
+                                    <button class="button secondary" type="button" data-practice-move="F" aria-label="Turn guide cube front face clockwise">F</button>
+                                    <button class="button secondary" type="button" data-practice-move="F'" aria-label="Turn guide cube front face counterclockwise">F′</button>
+                                    <button class="button secondary" type="button" data-practice-move="B" aria-label="Turn guide cube back face clockwise">B</button>
+                                    <button class="button secondary" type="button" data-practice-move="B'" aria-label="Turn guide cube back face counterclockwise">B′</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="corner-practice-stage" id="corner-practice-stage" role="img" aria-label="Separate three-dimensional practice cube. Drag to rotate its view.">
+                            <div class="corner-practice-orbit">
+                                <div class="cube-root" id="corner-practice-root"></div>
+                            </div>
+                        </div>
+                    </section>
+                    <aside class="tutorial-reference" aria-label="Reference method">
+                        <div>
+                            <strong>From the beginner method</strong>
+                            <p id="tutorial-reference-note"></p>
+                        </div>
+                        <div class="tutorial-demo-algorithm" id="tutorial-reference-algorithm" hidden><span>Reference moves</span><code id="tutorial-reference-moves"></code></div>
+                        <a id="tutorial-reference-link" href="https://jperm.net/3x3" target="_blank" rel="noopener noreferrer">Open J Perm ↗</a>
+                        <small>Reference moves need the setup described above; the sequence below is calculated for this scramble.</small>
+                    </aside>
+                    <div class="tutorial-demo-algorithm"><span id="tutorial-demo-move-label">Moves for this scramble</span><code id="tutorial-demo-moves"></code></div>
+                    <div class="tutorial-demo-algorithm tutorial-scramble-notation" id="tutorial-scramble-notation" hidden><span>Scramble</span><code id="tutorial-scramble-moves"></code></div>
+                    <p class="tutorial-demo-notation"><strong>Reading moves:</strong> U up · D down · L left · R right · F front · B back. x/y/z rotate the whole cube like R/U/F. A 2 means turn twice; ′ means counterclockwise when looking straight at that face.</p>
+                    <div class="steps-grid tutorial-step-list" id="beginner-step-list" aria-label="Beginner solving steps"></div>
+                    <div class="tutorial-move-controls" role="group" aria-label="Step through the solution moves">
+                        <button class="button secondary" id="tutorial-move-back" type="button">← Back move</button>
+                        <span id="tutorial-move-progress" role="status" aria-live="polite">0 / 0 moves</span>
+                        <button class="button secondary" id="tutorial-move-next" type="button">Next move →</button>
+                    </div>
+                    <div class="tutorial-delay-control">
+                        <label class="tutorial-delay-toggle" for="tutorial-delay-enabled">
+                            <input id="tutorial-delay-enabled" type="checkbox" checked>
+                            <span>Pause between moves</span>
+                        </label>
+                        <output id="tutorial-delay-value" for="tutorial-move-delay">250 ms</output>
+                        <input id="tutorial-move-delay" type="range" min="0" max="1500" step="50" value="250" aria-label="Delay between tutorial moves">
+                    </div>
+                    <div class="tutorial-demo-controls">
+                        <button class="button secondary" id="tutorial-previous" type="button">← Previous</button>
+                        <button class="button" id="tutorial-play" type="button">▶ Play solution</button>
+                        <button class="button secondary" id="tutorial-scramble" type="button" hidden>↻ New scramble</button>
+                        <button class="button secondary" id="tutorial-reset" type="button">↻ Reset</button>
+                        <button class="button secondary" id="tutorial-next" type="button">Next →</button>
+                    </div>
+                </section>
                 <div class="cube-view-controls" role="group" aria-label="Rotate cube view">
                     <span class="cube-view-label">Rotate view</span>
                     <button class="cube-view-control" id="rotate-cube-left" type="button" aria-label="Rotate view left" title="Rotate view left">←</button>
