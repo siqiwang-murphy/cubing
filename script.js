@@ -161,7 +161,7 @@
             title: "Solve the white corners",
             shortTitle: "White corners",
             description: "Insert the four white corners one at a time. A corner can be above its slot or in the bottom layer, and its white sticker can face up, down, or toward any side.",
-            tip: "Keep white on the bottom. Match the corner's two side colors to its slot, then use Righty (R U R' U') or Lefty (L' U' L U) to insert it. Play solution inserts one corner at a time; use the separate cube to preview that insertion.",
+            tip: "Keep the white cross on the bottom, with each edge color matched to its side center. Turn the top layer until a white corner's two other colors match the two side centers beside its slot. If the slot is at the back, rotate the whole cube to bring it to the front, then use Righty (R U R' U') or Lefty (L' U' L U).",
             reference: {
                 note: "J Perm demonstrates right- and left-handed 4-move sequences for inserting first-layer corners. This practice cube shows those Righty and Lefty examples.",
                 url: "https://jperm.net/3x3",
@@ -198,7 +198,7 @@
             id: "yellow-edges",
             title: "Match the yellow cross edges",
             shortTitle: "Yellow edges",
-            description: "With the yellow cross made, line up each yellow edge's side sticker with its matching center. The cube path is calculated for this scramble.",
+            description: "With the yellow cross made, line up each yellow edge's side sticker with its matching center. The cube path is calculated for the current cube state.",
             tip: "The yellow stickers stay on top; now match the four side colors to the centers before working on the corners.",
             reference: {
                 note: "J Perm's next step matches the side colors of the top cross with their centers before solving the corners.",
@@ -254,6 +254,18 @@
         console.error("Could not load saved algorithm learning statuses.", error);
         algorithmLearningStorageMessage = "Saved statuses could not be loaded; changes may not persist.";
     }
+    let guestAlgorithmLearningStatuses = { ...algorithmLearningStatuses };
+    let guestCustomAlgorithms = {};
+    let accountProgressUserId = null;
+    let accountProgressNeedsGuestMerge = false;
+    let accountProgressReady = false;
+    let syncingAccountUserId = null;
+    let accountProgressSyncId = 0;
+    let accountProgressSaveQueue = Promise.resolve();
+    let accountProgressSaveVersion = 0;
+    let accountProgressMessage = "";
+    let pendingAccountStatusChanges = {};
+    let pendingAccountCustomChanges = {};
     const defaultViewRotation = { x: -24, y: -34 };
     const viewRotation = { ...defaultViewRotation };
     let viewAlignment = { x: 0, y: 0, z: 0 };
@@ -268,7 +280,7 @@
     let cornerPracticeSequence = [];
     let cornerPracticeDescription = "";
     let cornerPracticeCanInteract = false;
-    const defaultCornerPracticeViewRotation = { x: -24, y: -34 };
+    const defaultCornerPracticeViewRotation = { x: 24, y: -34 };
     const cornerPracticeViewRotation = { ...defaultCornerPracticeViewRotation };
     let cornerPracticePointer = null;
     let activeBeginnerStep = 0;
@@ -435,6 +447,182 @@
         return algorithmLearningStates.find(state => state.id === statusId) || algorithmLearningStates[0];
     }
 
+    function getCustomAlgorithms() {
+        return Object.fromEntries(cases
+            .filter(caseItem => caseItem.solutions.some(solution => solution.isCustom))
+            .map(caseItem => [
+                caseItem.id,
+                caseItem.solutions.find(solution => solution.isCustom).moves
+            ]));
+    }
+
+    function applyCustomAlgorithms(customAlgorithms) {
+        cases.forEach(caseItem => {
+            caseItem.solutions = caseItem.solutions.filter(solution => !solution.isCustom);
+            const moves = customAlgorithms[caseItem.id];
+            if (moves === undefined) return;
+            if (typeof moves !== "string") {
+                throw new Error(`Saved custom algorithm for ${caseItem.id} is not valid.`);
+            }
+            const parsed = normalizeAlgorithm(moves);
+            if (!parsed.moves || parsed.invalidTokens.length > 0) {
+                throw new Error(`Saved custom algorithm for ${caseItem.id} contains unsupported moves.`);
+            }
+            const normalizedMoves = caseItem.category === "PLL" ? removeCubeRotations(parsed.moves) : parsed.moves;
+            caseItem.solutions.push({ moves: normalizedMoves, isCustom: true });
+        });
+    }
+
+    function validateLearningStatuses(statuses) {
+        if (!statuses || typeof statuses !== "object" || Array.isArray(statuses)) {
+            throw new Error("Saved account learning statuses are not a valid object.");
+        }
+        for (const [key, status] of Object.entries(statuses)) {
+            if (typeof key !== "string" || !algorithmLearningStates.some(state => state.id === status)) {
+                throw new Error("Saved account learning statuses contain an invalid value.");
+            }
+        }
+        return statuses;
+    }
+
+    function validateCustomAlgorithms(customAlgorithms) {
+        if (!customAlgorithms || typeof customAlgorithms !== "object" || Array.isArray(customAlgorithms)) {
+            throw new Error("Saved account custom algorithms are not a valid object.");
+        }
+        const validCaseIds = new Set(cases.map(caseItem => caseItem.id));
+        for (const [caseId, moves] of Object.entries(customAlgorithms)) {
+            if (!validCaseIds.has(caseId) || typeof moves !== "string") {
+                throw new Error("Saved account custom algorithms contain an invalid case or value.");
+            }
+            const parsed = normalizeAlgorithm(moves);
+            if (!parsed.moves || parsed.invalidTokens.length > 0) {
+                throw new Error(`Saved custom algorithm for ${caseId} contains unsupported moves.`);
+            }
+        }
+        return customAlgorithms;
+    }
+
+    function renderAccountProgressMessage() {
+        const statusMessage = document.getElementById("algorithm-status-message");
+        statusMessage.textContent = accountProgressMessage || algorithmLearningStorageMessage;
+    }
+
+    function saveAccountProgress() {
+        const account = window.CUBE_CLUB_ACCOUNT;
+        const userId = accountProgressUserId;
+        if (!userId || !account) return;
+        if (!accountProgressReady) {
+            if (!syncingAccountUserId) {
+                syncAccountProgress(userId);
+                return;
+            }
+            accountProgressMessage = "Waiting for your account progress to finish loading.";
+            renderAccountProgressMessage();
+            return;
+        }
+
+        const version = ++accountProgressSaveVersion;
+        const progress = {
+            learningStatuses: { ...algorithmLearningStatuses },
+            customAlgorithms: getCustomAlgorithms()
+        };
+        accountProgressMessage = "Saving progress to your account…";
+        renderAccountProgressMessage();
+        const saveTask = accountProgressSaveQueue.then(() => account.saveProgress(userId, progress));
+        accountProgressSaveQueue = saveTask.catch(error => {
+            if (accountProgressUserId !== userId || accountProgressSaveVersion !== version) return;
+            console.error("Could not save account progress.", error);
+            accountProgressMessage = `Could not save to your account: ${error && error.message ? error.message : "Please try again."}`;
+            renderAccountProgressMessage();
+        });
+        saveTask.then(() => {
+            if (accountProgressUserId !== userId || accountProgressSaveVersion !== version) return;
+            accountProgressMessage = "Progress saved to your account.";
+            renderAccountProgressMessage();
+        }, () => {});
+    }
+
+    async function syncAccountProgress(userId) {
+        const account = window.CUBE_CLUB_ACCOUNT;
+        if (!account || !userId || accountProgressReady && accountProgressUserId === userId ||
+            syncingAccountUserId === userId) return;
+
+        const firstAccount = accountProgressUserId === null;
+        if (firstAccount) accountProgressNeedsGuestMerge = true;
+        if (!firstAccount && accountProgressUserId !== userId) {
+            accountProgressNeedsGuestMerge = false;
+            algorithmLearningStatuses = {};
+            applyCustomAlgorithms({});
+            pendingAccountStatusChanges = {};
+            pendingAccountCustomChanges = {};
+            renderCaseGrid();
+        }
+        accountProgressUserId = userId;
+        accountProgressReady = false;
+        syncingAccountUserId = userId;
+        const requestId = ++accountProgressSyncId;
+        accountProgressMessage = "Loading progress from your account…";
+        renderAccountProgressMessage();
+        try {
+            const data = await account.loadProgress(userId);
+            if (requestId !== accountProgressSyncId || accountProgressUserId !== userId) return;
+            const savedStatuses = validateLearningStatuses(data.learning_statuses);
+            const savedCustomAlgorithms = validateCustomAlgorithms(data.custom_algorithms);
+            algorithmLearningStatuses = {
+                ...(accountProgressNeedsGuestMerge ? guestAlgorithmLearningStatuses : {}),
+                ...savedStatuses,
+                ...pendingAccountStatusChanges
+            };
+            const customAlgorithms = {
+                ...(accountProgressNeedsGuestMerge ? guestCustomAlgorithms : {}),
+                ...savedCustomAlgorithms,
+                ...pendingAccountCustomChanges
+            };
+            applyCustomAlgorithms(customAlgorithms);
+            accountProgressNeedsGuestMerge = false;
+            accountProgressReady = true;
+            pendingAccountStatusChanges = {};
+            pendingAccountCustomChanges = {};
+            accountProgressMessage = "";
+            renderCaseGrid();
+            if (selectedCase && selectedCase.solutions[selectedAlgorithmIndex]) {
+                loadCase(selectedCase, selectedAlgorithmIndex);
+            }
+            renderAccountProgressMessage();
+            saveAccountProgress();
+        } catch (error) {
+            if (requestId !== accountProgressSyncId || accountProgressUserId !== userId) return;
+            console.error("Could not load account progress.", error);
+            accountProgressMessage = `Could not load your account progress: ${error && error.message ? error.message : "Please try again."}`;
+            renderAccountProgressMessage();
+        } finally {
+            if (syncingAccountUserId === userId) syncingAccountUserId = null;
+        }
+    }
+
+    function handleAccountSessionChange(session) {
+        const userId = session && session.user && session.user.id;
+        if (userId) {
+            syncAccountProgress(userId);
+            return;
+        }
+        if (accountProgressUserId !== null) {
+            accountProgressSyncId++;
+            accountProgressUserId = null;
+            accountProgressNeedsGuestMerge = false;
+            accountProgressReady = false;
+            syncingAccountUserId = null;
+            pendingAccountStatusChanges = {};
+            pendingAccountCustomChanges = {};
+            algorithmLearningStatuses = { ...guestAlgorithmLearningStatuses };
+            applyCustomAlgorithms(guestCustomAlgorithms);
+            accountProgressMessage = "";
+            renderCaseGrid();
+            if (selectedCase) loadCase(selectedCase);
+            renderAccountProgressMessage();
+        }
+    }
+
     function getCaseLearningStatus(caseItem) {
         let isLearning = false;
         for (let index = 0; index < caseItem.solutions.length; index++) {
@@ -464,20 +652,27 @@
         button.addEventListener("click", () => {
             const currentIndex = algorithmLearningStates.findIndex(state => state.id === learningState.id);
             const nextState = algorithmLearningStates[(currentIndex + 1) % algorithmLearningStates.length];
-            algorithmLearningStatuses[getAlgorithmLearningKey(caseItem, selectedSolutionIndex)] = nextState.id;
-            try {
-                window.localStorage.setItem(algorithmLearningStorageKey, JSON.stringify(algorithmLearningStatuses));
-                algorithmLearningStorageMessage = "";
-            } catch (error) {
-                console.error("Could not save algorithm learning status.", error);
-                algorithmLearningStorageMessage = "Could not save this status in the browser.";
+            const learningKey = getAlgorithmLearningKey(caseItem, selectedSolutionIndex);
+            algorithmLearningStatuses[learningKey] = nextState.id;
+            if (accountProgressUserId) {
+                if (!accountProgressReady) pendingAccountStatusChanges[learningKey] = nextState.id;
+                saveAccountProgress();
+            } else {
+                try {
+                    window.localStorage.setItem(algorithmLearningStorageKey, JSON.stringify(algorithmLearningStatuses));
+                    guestAlgorithmLearningStatuses = { ...algorithmLearningStatuses };
+                    algorithmLearningStorageMessage = "";
+                } catch (error) {
+                    console.error("Could not save algorithm learning status.", error);
+                    algorithmLearningStorageMessage = "Could not save this status in the browser.";
+                }
             }
             renderAlgorithmLearningStatuses(caseItem, selectedSolutionIndex);
             renderCaseGrid();
             container.querySelector(`[data-solution-index="${selectedSolutionIndex}"]`).focus();
         });
         container.appendChild(button);
-        document.getElementById("algorithm-status-message").textContent = algorithmLearningStorageMessage;
+        renderAccountProgressMessage();
     }
 
     function getPreparedCase(caseItem, solutionIndex = 0) {
@@ -813,6 +1008,12 @@
             solutionIndex = selectedCase.solutions.length - 1;
         } else {
             selectedCase.solutions[solutionIndex].moves = moves;
+        }
+        if (accountProgressUserId) {
+            if (!accountProgressReady) pendingAccountCustomChanges[selectedCase.id] = moves;
+            saveAccountProgress();
+        } else {
+            guestCustomAlgorithms[selectedCase.id] = moves;
         }
         loadCase(selectedCase, solutionIndex);
         status.textContent = "Custom algorithm added to this case's solutions.";
@@ -1305,8 +1506,8 @@
                 leftCornerInsert,
                 "F U F' U'",
                 "F' U' F U",
-                "B U B' U'",
-                "B' U' B U"
+                `y2 ${rightCornerInsert} y2`,
+                `y2 ${leftCornerInsert} y2`
             ]
         },
         "middle-layer": {
@@ -1726,11 +1927,16 @@
         const faceNames = { U: "up", D: "down", L: "left", R: "right", F: "front", B: "back" };
         const layer = target.y === 1 ? "top" : "bottom";
         title.textContent = `${plan.placedCount} of 4 white corners placed`;
-        cornerPracticeDescription = `The next white corner is in the ${layer} layer with its white sticker facing ${faceNames[whiteStickerFace]}. Try moves on this separate cube or play the guided insertion; the main tutorial cube will not move.`;
+        cornerPracticeDescription = `The next white corner is in the ${layer} layer with its white sticker facing ${faceNames[whiteStickerFace]}. Keep the white cross on the bottom, match the corner's two other colors to the side centers beside its slot, and place it above that slot. The main tutorial cube will not move.`;
         description.textContent = cornerPracticeDescription;
         moves.textContent = plan.moves.replace(/'/g, "′");
         playButton.textContent = "▶ Play on guide cube";
         updateCornerPracticeControls();
+        if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            window.requestAnimationFrame(() => {
+                if (cornerPracticeCanInteract && !isPlayingCornerPractice) playCornerPracticeSolution();
+            });
+        }
     }
 
     function updateCornerPracticeControls() {
@@ -1871,9 +2077,7 @@
         referenceLink.href = reference.url;
         referenceLink.textContent = `${reference.label} ↗`;
         document.getElementById("tutorial-demo-moves").textContent = tutorialMoveTokens.join(" ").replace(/'/g, "′");
-        document.getElementById("tutorial-demo-move-label").textContent = "Moves for this scramble";
-        document.getElementById("tutorial-scramble-notation").hidden = step.id !== "daisy";
-        document.getElementById("tutorial-scramble-moves").textContent = beginnerDaisyScramble.join(" ").replace(/'/g, "′");
+        document.getElementById("tutorial-demo-move-label").textContent = "Moves for this step";
         document.getElementById("tutorial-previous").disabled = activeBeginnerStep === 0;
         document.getElementById("tutorial-next").disabled = activeBeginnerStep === beginnerSteps.length - 1;
         document.getElementById("tutorial-scramble").hidden = step.id !== "daisy";
@@ -2174,6 +2378,10 @@
     renderBeginnerStepList();
     renderCaseGrid();
     loadCase(cases.find(caseItem => caseItem.id === "pll-aa"));
+    const account = window.CUBE_CLUB_ACCOUNT;
+    if (account && typeof account.onSessionChange === "function") {
+        account.onSessionChange(handleAccountSessionChange);
+    }
     window.addEventListener("resize", () => {
         if (!busy && moveQueue.length === 0) cubies.forEach(drawCubie);
     });

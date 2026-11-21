@@ -18,6 +18,7 @@
             <a href="#case-library">Algorithm cases</a>
             <button class="header-link" id="open-beginner-tutorial" type="button">Beginner tutorial</button>
             <a class="level-pill" href="#algorithms">3×3 · OLL + PLL</a>
+            <button class="button secondary account-nav-button" id="open-account" type="button">Create account</button>
         </nav>
     </header>
 
@@ -109,11 +110,11 @@
                             <p class="lesson-kicker">Separate 3D practice cube</p>
                             <h3 id="corner-practice-title">Insert one white corner</h3>
                             <p id="corner-practice-description"></p>
-                            <p class="corner-orientation-note">Keep white on the bottom and place the corner above its matching slot. Use Righty for a right-side insertion or Lefty for a left-side insertion.</p>
+                            <p class="corner-orientation-note">Keep the white cross on the bottom, with each edge color matched to its side center. Turn the top layer until the corner’s two non-white colors match the two centers beside its slot. If the slot is at the back, rotate the whole cube to bring it to the front before inserting. Use Righty for a right-side insertion or Lefty for a left-side insertion.</p>
                             <div class="tutorial-demo-algorithm"><span>Righty</span><code>R U R′ U′</code></div>
                             <div class="tutorial-demo-algorithm"><span>Lefty</span><code>L′ U′ L U</code></div>
                             <div class="tutorial-demo-algorithm"><span>Moves for this case</span><code id="corner-practice-moves"></code></div>
-                            <p class="corner-practice-interaction-hint">Drag the cube to rotate its view. Use the face buttons to try moves; reset returns to this corner case.</p>
+                            <p class="corner-practice-interaction-hint">The guide cube previews this insertion automatically. Replay it or use the face buttons to practice; reset returns to the starting corner case.</p>
                             <div class="corner-practice-actions">
                                 <button class="button secondary corner-practice-play" id="corner-practice-play" type="button">▶ Play on guide cube</button>
                                 <button class="button secondary" id="corner-practice-reset" type="button">↻ Reset guide cube</button>
@@ -128,7 +129,7 @@
                                     <button class="button secondary" type="button" data-practice-move="D'" aria-label="Turn guide cube bottom face counterclockwise">D′</button>
                                     <button class="button secondary" type="button" data-practice-move="L" aria-label="Turn guide cube left face clockwise">L</button>
                                     <button class="button secondary" type="button" data-practice-move="L'" aria-label="Turn guide cube left face counterclockwise">L′</button>
-                                    <button class="button secondary" type="button" data-practice-move="R" aria-label="Turn guide cube right face clockwise">R</button>
+                                    <button class="button secondary" type="button" d  ata-practice-move="R" aria-label="Turn guide cube right face clockwise">R</button>
                                     <button class="button secondary" type="button" data-practice-move="R'" aria-label="Turn guide cube right face counterclockwise">R′</button>
                                     <button class="button secondary" type="button" data-practice-move="F" aria-label="Turn guide cube front face clockwise">F</button>
                                     <button class="button secondary" type="button" data-practice-move="F'" aria-label="Turn guide cube front face counterclockwise">F′</button>
@@ -150,11 +151,17 @@
                         </div>
                         <div class="tutorial-demo-algorithm" id="tutorial-reference-algorithm" hidden><span>Reference moves</span><code id="tutorial-reference-moves"></code></div>
                         <a id="tutorial-reference-link" href="https://jperm.net/3x3" target="_blank" rel="noopener noreferrer">Open J Perm ↗</a>
-                        <small>Reference moves need the setup described above; the sequence below is calculated for this scramble.</small>
+                        <small>Reference moves need the setup described above; the sequence below is calculated for the current cube state.</small>
                     </aside>
-                    <div class="tutorial-demo-algorithm"><span id="tutorial-demo-move-label">Moves for this scramble</span><code id="tutorial-demo-moves"></code></div>
-                    <div class="tutorial-demo-algorithm tutorial-scramble-notation" id="tutorial-scramble-notation" hidden><span>Scramble</span><code id="tutorial-scramble-moves"></code></div>
+                    <div class="tutorial-demo-algorithm"><span id="tutorial-demo-move-label">Moves for this step</span><code id="tutorial-demo-moves"></code></div>
                     <p class="tutorial-demo-notation"><strong>Reading moves:</strong> U up · D down · L left · R right · F front · B back. x/y/z rotate the whole cube like R/U/F. A 2 means turn twice; ′ means counterclockwise when looking straight at that face.</p>
+                    <div class="tutorial-demo-controls">
+                        <button class="button secondary" id="tutorial-previous" type="button">← Previous</button>
+                        <button class="button" id="tutorial-play" type="button">▶ Play solution</button>
+                        <button class="button secondary" id="tutorial-scramble" type="button" hidden>↻ New scramble</button>
+                        <button class="button secondary" id="tutorial-reset" type="button">↻ Reset</button>
+                        <button class="button secondary" id="tutorial-next" type="button">Next →</button>
+                    </div>
                     <div class="steps-grid tutorial-step-list" id="beginner-step-list" aria-label="Beginner solving steps"></div>
                     <div class="tutorial-move-controls" role="group" aria-label="Step through the solution moves">
                         <button class="button secondary" id="tutorial-move-back" type="button">← Back move</button>
@@ -168,13 +175,6 @@
                         </label>
                         <output id="tutorial-delay-value" for="tutorial-move-delay">250 ms</output>
                         <input id="tutorial-move-delay" type="range" min="0" max="1500" step="50" value="250" aria-label="Delay between tutorial moves">
-                    </div>
-                    <div class="tutorial-demo-controls">
-                        <button class="button secondary" id="tutorial-previous" type="button">← Previous</button>
-                        <button class="button" id="tutorial-play" type="button">▶ Play solution</button>
-                        <button class="button secondary" id="tutorial-scramble" type="button" hidden>↻ New scramble</button>
-                        <button class="button secondary" id="tutorial-reset" type="button">↻ Reset</button>
-                        <button class="button secondary" id="tutorial-next" type="button">Next →</button>
                     </div>
                 </section>
                 <div class="cube-view-controls" role="group" aria-label="Rotate cube view">
@@ -215,6 +215,47 @@
             </section>
         </dialog>
 
+        <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
+            <div class="account-dialog-header">
+                <div>
+                    <p class="eyebrow">Cube Club</p>
+                    <h2 id="account-dialog-title">Create your account</h2>
+                </div>
+                <button class="button secondary account-close-button" id="close-account-dialog" type="button">Close</button>
+            </div>
+            <p class="account-dialog-copy" id="account-dialog-copy">Sign up with your email and a username. We’ll send you a verification email.</p>
+            <div class="account-setup" id="account-setup" role="status" hidden></div>
+            <div class="account-form-panel" id="account-form-panel" hidden>
+                <div class="account-mode-buttons" role="group" aria-label="Account action">
+                    <button class="button secondary account-mode-button is-active" data-account-mode="signup" type="button" aria-pressed="true">Create account</button>
+                    <button class="button secondary account-mode-button" data-account-mode="signin" type="button" aria-pressed="false">Sign in</button>
+                </div>
+                <form class="account-form" id="account-form">
+                    <label class="account-field" id="account-username-field" for="account-username">
+                        <span>Username</span>
+                        <input id="account-username" name="username" type="text" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="username" required>
+                        <small>3–20 letters, numbers, or underscores.</small>
+                    </label>
+                    <label class="account-field" for="account-email">
+                        <span>Email</span>
+                        <input id="account-email" name="email" type="email" maxlength="254" autocomplete="email" required>
+                    </label>
+                    <label class="account-field" for="account-password">
+                        <span>Password</span>
+                        <input id="account-password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+                        <small id="account-password-hint">Use at least 8 characters.</small>
+                    </label>
+                    <button class="button account-submit" id="account-submit" type="submit">Create account</button>
+                    <p class="account-message" id="account-message" role="status" aria-live="polite"></p>
+                </form>
+            </div>
+            <div class="account-session-panel" id="account-session-panel" hidden>
+                <p id="account-session-summary"></p>
+                <p class="account-message" id="account-session-message" role="status" aria-live="polite"></p>
+                <button class="button secondary" id="account-sign-out" type="button">Sign out</button>
+            </div>
+        </dialog>
+
         <section class="case-library" id="case-library" aria-labelledby="case-library-title">
             <div class="section-heading">
                 <div><p class="eyebrow">Algorithm library</p><h2 id="case-library-title">Choose a case.</h2></div>
@@ -237,6 +278,9 @@
     <footer>Made for curious minds &amp; mixed-up cubes.</footer>
 
     <script src="algorithm-variants.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="account.js" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>
