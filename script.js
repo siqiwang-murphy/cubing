@@ -76,7 +76,9 @@
                 throw new Error(`Unsupported J Perm move notation for ${caseId}: ${parsed.invalidTokens.join(", ")}.`);
             }
             if (!parsed.moves) continue;
-            const moves = caseId.startsWith("pll-") ? removeCubeRotations(parsed.moves) : parsed.moves;
+            const moves = caseId.startsWith("pll-") && caseId !== "pll-ja"
+                ? removeCubeRotations(parsed.moves)
+                : parsed.moves;
             if (seenMoves.has(moves)) continue;
             seenMoves.add(moves);
             solutions.push({ moves });
