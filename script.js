@@ -46,8 +46,15 @@
             .map(token => {
                 const wideTurn = token.match(/^([URFDLB])w(2|')?$/i);
                 if (wideTurn) token = `${wideTurn[1].toLowerCase()}${wideTurn[2] || ""}`;
-                const threeQuarterTurn = token.match(/^([URFDLBurfdlbMESxyz])3$/);
+                const threeQuarterTurn = token.match(/^([URFDLBurfdlbMESmesxyzIi])3$/);
                 if (threeQuarterTurn) token = `${threeQuarterTurn[1]}'`;
+                const alias = token.match(/^([IiEeMmSs])(2|'|²)?$/);
+                if (alias) {
+                    const base = alias[1].toLowerCase() === "i"
+                        ? "l"
+                        : alias[1].toUpperCase();
+                    token = `${base}${alias[2] || ""}`;
+                }
                 return token;
             });
         return {
@@ -578,7 +585,9 @@
                 ...savedCustomAlgorithms,
                 ...pendingAccountCustomChanges
             };
-            applyCustomAlgorithms(customAlgorithms);
+            applyCustomAlgorithms(Object.fromEntries(
+                Object.entries(customAlgorithms).filter(([, moves]) => typeof moves === "string")
+            ));
             accountProgressNeedsGuestMerge = false;
             accountProgressReady = true;
             pendingAccountStatusChanges = {};
@@ -972,9 +981,10 @@
         const customInput = document.getElementById("custom-algorithm-input");
         customInput.value = customSolution ? customSolution.moves : "";
         customInput.removeAttribute("aria-invalid");
+        document.getElementById("delete-custom-algorithm").hidden = !customSolution;
         document.getElementById("custom-algorithm-status").textContent = customSolution
             ? "A custom algorithm is available in this case's solution list."
-            : "Enter moves such as R, R', R2, r, M, or x.";
+            : "Enter moves such as R, R', R2, l, u, d, f, b, e, M, or x.";
         document.querySelectorAll(".case-card").forEach(card => {
             card.setAttribute("aria-pressed", String(card.dataset.caseId === caseItem.id));
         });
@@ -1017,6 +1027,37 @@
         }
         loadCase(selectedCase, solutionIndex);
         status.textContent = "Custom algorithm added to this case's solutions.";
+    }
+
+    function deleteCustomAlgorithm() {
+        const status = document.getElementById("custom-algorithm-status");
+        const input = document.getElementById("custom-algorithm-input");
+        if (!selectedCase) {
+            status.textContent = "Choose a case before deleting a custom algorithm.";
+            return;
+        }
+
+        const solutionIndex = selectedCase.solutions.findIndex(solution => solution.isCustom);
+        if (solutionIndex < 0) {
+            status.textContent = "This case does not have a custom algorithm.";
+            return;
+        }
+
+        selectedCase.solutions.splice(solutionIndex, 1);
+        delete guestCustomAlgorithms[selectedCase.id];
+        if (accountProgressUserId) {
+            if (!accountProgressReady) {
+                pendingAccountCustomChanges[selectedCase.id] = null;
+            } else {
+                saveAccountProgress();
+            }
+        }
+
+        input.value = "";
+        input.removeAttribute("aria-invalid");
+        document.getElementById("delete-custom-algorithm").hidden = true;
+        loadCase(selectedCase, 0);
+        status.textContent = "Custom algorithm deleted.";
     }
 
     function navigateCase(direction) {
@@ -2211,6 +2252,7 @@
         }
     });
     document.getElementById("apply-custom-algorithm").addEventListener("click", applyCustomAlgorithm);
+    document.getElementById("delete-custom-algorithm").addEventListener("click", deleteCustomAlgorithm);
     document.getElementById("custom-algorithm-input").addEventListener("keydown", event => {
         if (event.key === "Enter") {
             event.preventDefault();
