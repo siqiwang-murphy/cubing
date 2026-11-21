@@ -620,7 +620,7 @@ window.CUBE_ALGORITHM_VARIANTS = {
     "pll-ja":  [
                    {
                        "label":  "J Perm 1",
-                       "moves":  "x R2 F R F\u0027 R U2 r\u0027 U r U2"
+                       "moves":  "x R2 F R F\u0027 R U2 r\u0027 U r U2 x\u0027"
                    },
                    {
                        "label":  "J Perm 2",
